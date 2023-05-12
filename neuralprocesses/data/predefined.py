@@ -5,6 +5,7 @@ from .gp import GPGenerator
 from .mixture import MixtureGenerator
 from .mixgp import MixtureGPGenerator
 from .sawtooth import SawtoothGenerator
+from .noised_sawtooth import NoisedSawtoothGenerator
 from ..dist.uniform import UniformDiscrete, UniformContinuous
 
 __all__ = ["construct_predefined_gens"]
@@ -23,6 +24,7 @@ def construct_predefined_gens(
     pred_logpdf=True,
     pred_logpdf_diag=True,
     device="cpu",
+    noise_levels=2,
 ):
     """Construct a number of predefined data generators.
 
@@ -95,6 +97,19 @@ def construct_predefined_gens(
         num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
         **config,
     )
+    
+    # New generator below
+    gens["noised_sawtooth"] = NoisedSawtoothGenerator(
+        dtype,
+        seed=seed,
+        noise=0,
+        dist_freq=UniformContinuous(2 / factor, 4 / factor),
+        noise_levels=noise_levels,
+        num_context=UniformDiscrete(0, max_context),
+        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        **config,
+    )
+
     # Be sure to use different seeds in the mixture components.
     gens["mixture"] = MixtureGenerator(
         *(

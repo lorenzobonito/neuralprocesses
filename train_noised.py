@@ -19,6 +19,24 @@ __all__ = ["main"]
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 
+def _mask_context(context):
+
+    choice = np.random.choice((0, 1, 2))
+    
+    if choice == 0:
+        # If 0, no masking is carried out, and all three context sets are passed on.
+        return context
+    elif choice == 1:
+        # If 1, y1t is masked, and only y2t and yc are passed as context
+        context[1] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
+        return context
+    elif choice == 2:
+        # If 2, y1t and y2t are masked, and only yc is passed as context
+        context[1] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
+        context[2] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
+        return context
+    
+
 def train(state, model, opt, objective, gen, *, fix_noise):
     """Train for an epoch."""
     vals = []
@@ -26,7 +44,7 @@ def train(state, model, opt, objective, gen, *, fix_noise):
         state, obj = objective(
             state,
             model,
-            batch["contexts"],
+            _mask_context(batch["contexts"]),
             batch["xt"],
             batch["yt"],
             fix_noise=fix_noise,
@@ -52,6 +70,7 @@ def eval(state, model, objective, gen):
                 state,
                 model,
                 batch["contexts"],
+                # _mask_context(batch["contexts"]),
                 batch["xt"],
                 batch["yt"],
             )
@@ -85,30 +104,10 @@ def main(**kw_args):
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--dim-x", type=int, default=1)
     parser.add_argument("--dim-y", type=int, default=1)
+    parser.add_argument("--noise_levels", type=int, default=2)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--rate", type=float)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument(
-        "--model",
-        choices=[
-            "cnp",
-            "gnp",
-            "np",
-            "acnp",
-            "agnp",
-            "anp",
-            "convcnp",
-            "convgnp",
-            "convnp",
-            "fullconvgnp",
-            # Experiment-specific architectures:
-            "convcnp-mlp",
-            "convgnp-mlp",
-            "convcnp-multires",
-            "convgnp-multires",
-        ],
-        default="convcnp",
-    )
     parser.add_argument(
         "--arch",
         choices=[
@@ -205,15 +204,6 @@ def main(**kw_args):
                         out.out(f'Did not apply patch "{patch}".')
         return d
 
-    # Remove the architecture argument if a model doesn't use it.
-    if args.model not in {
-        "convcnp",
-        "convgnp",
-        "convnp",
-        "fullconvgnp",
-    }:
-        del args.arch
-
     # Remove the dimensionality specification if the experiment doesn't need it.
     if not exp.data[args.data]["requires_dim_x"]:
         del args.dim_x
@@ -248,7 +238,7 @@ def main(**kw_args):
         *(args.subdir or ()),
         data_dir,
         *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
-        args.model,
+        "convcnp",
         *((args.arch,) if hasattr(args, "arch") else ()),
         args.objective,
         log=f"log{suffix}.txt",
@@ -335,172 +325,25 @@ def main(**kw_args):
         # See if the experiment constructed the particular flavour of the model already.
         model = config["model"]
     else:
-        # Construct the model.
-        if args.model == "cnp":
-            model = nps.construct_gnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                transform=config["transform"],
-            )
-        elif args.model == "gnp":
-            model = nps.construct_gnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="lowrank",
-                num_basis_functions=config["num_basis_functions"],
-                transform=config["transform"],
-            )
-        elif args.model == "np":
-            model = nps.construct_gnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                dim_lv=config["dim_embedding"],
-                transform=config["transform"],
-            )
-        elif args.model == "acnp":
-            model = nps.construct_agnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_heads=config["num_heads"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                transform=config["transform"],
-            )
-        elif args.model == "agnp":
-            model = nps.construct_agnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_heads=config["num_heads"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="lowrank",
-                num_basis_functions=config["num_basis_functions"],
-                transform=config["transform"],
-            )
-        elif args.model == "anp":
-            model = nps.construct_agnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_heads=config["num_heads"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                dim_lv=config["dim_embedding"],
-                transform=config["transform"],
-            )
-        elif args.model == "convcnp":
-            model = nps.construct_convgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                likelihood="het",
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        elif args.model == "convgnp":
-            model = nps.construct_convgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                likelihood="lowrank",
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                num_basis_functions=config["num_basis_functions"],
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        elif args.model == "convnp":
-            if config["dim_x"] == 2:
-                # Reduce the number of channels in the conv. architectures by a factor
-                # $\sqrt(2)$. This keeps the runtime in check and reduces the parameters
-                # of the ConvNP to the number of parameters of the ConvCNP.
-                config["unet_channels"] = tuple(
-                    int(c / 2**0.5) for c in config["unet_channels"]
-                )
-                config["dws_channels"] = int(config["dws_channels"] / 2**0.5)
-            model = nps.construct_convgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                likelihood="het",
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                dim_lv=16,
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        elif args.model == "fullconvgnp":
-            model = nps.construct_fullconvgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                kernel_factor=config["fullconvgnp_kernel_factor"],
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        else:
-            raise ValueError(f'Invalid model "{args.model}".')
+        model = nps.construct_convgnp(
+            points_per_unit=config["points_per_unit"],
+            dim_x=config["dim_x"],
+            dim_yc=(1,) * config["dim_y"],
+            dim_yt=config["dim_y"],
+            likelihood="het",
+            conv_arch=args.arch,
+            unet_channels=config["unet_channels"],
+            unet_strides=config["unet_strides"],
+            conv_channels=config["conv_channels"],
+            conv_layers=config["num_layers"],
+            conv_receptive_field=config["conv_receptive_field"],
+            margin=config["margin"],
+            encoder_scales=config["encoder_scales"],
+            transform=config["transform"],
+        )
 
     # Settings specific for the model:
     if config["fix_noise"] is None:
-        if args.model in {"np", "anp", "convnp"}:
-            config["fix_noise"] = True
-        else:
             config["fix_noise"] = False
 
     # Ensure that the model is on the GPU and print the setup.
@@ -622,9 +465,7 @@ def main(**kw_args):
                             state, _ = eval(state, model, objective_eval, gen)
 
         # Always run AR evaluation for the conditional models.
-        if not args.no_ar and (
-            args.model in {"cnp", "acnp", "convcnp"} or args.ar or args.also_ar
-        ):
+        if not args.no_ar:
             # Make some plots.
             gen = gen_cv()
             for i in range(args.evaluate_num_plots):
@@ -745,4 +586,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main()
+    main(data="noised_sawtooth", dim_y=3, epochs=10)

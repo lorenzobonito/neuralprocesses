@@ -42,11 +42,12 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
         batch_size=args.batch_size,
         num_tasks=num_tasks_train,
         dim_x=args.dim_x,
-        dim_y=args.dim_y,
+        dim_y=args.dim_y if name != "noised_sawtooth" else 1,
         pred_logpdf=False,
         pred_logpdf_diag=False,
         device=device,
         mean_diff=config["mean_diff"],
+        noise_levels=config["noise_levels"],
     )[name]
 
     gen_cv = lambda: nps.construct_predefined_gens(
@@ -55,11 +56,12 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
         batch_size=args.batch_size,
         num_tasks=num_tasks_cv,
         dim_x=args.dim_x,
-        dim_y=args.dim_y,
+        dim_y=args.dim_y if name != "noised_sawtooth" else 1,
         pred_logpdf=True,
         pred_logpdf_diag=True,
         device=device,
         mean_diff=config["mean_diff"],
+        noise_levels=config["noise_levels"],
     )[name]
 
     def gens_eval():
@@ -72,13 +74,14 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
                     batch_size=args.batch_size,
                     num_tasks=num_tasks_eval,
                     dim_x=args.dim_x,
-                    dim_y=args.dim_y,
+                    dim_y=args.dim_y if name != "noised_sawtooth" else 1,
                     pred_logpdf=True,
                     pred_logpdf_diag=True,
                     device=device,
                     x_range_context=x_range_context,
                     x_range_target=x_range_target,
                     mean_diff=config["mean_diff"],
+                    noise_levels=config["noise_levels"],
                 )[args.data],
             )
             for eval_name, x_range_context, x_range_target in [
@@ -98,6 +101,7 @@ names = [
     "mix-matern",
     "mix-weakly-periodic",
     "sawtooth",
+    "noised_sawtooth",
     "mixture",
 ]
 
