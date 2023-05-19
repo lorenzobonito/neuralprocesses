@@ -298,7 +298,7 @@ def main(**kw_args):
         # the CNN architecture. We therefore set it to 64.
         "num_basis_functions": 64,
         "eeg_mode": args.eeg_mode,
-        "noise_levels": args.noise_levels,
+        "noise_levels": None,
     }
 
     # Setup data generators for training and for evaluation.
@@ -745,4 +745,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main()
+    main(data="sawtooth")

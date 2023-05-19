@@ -19,18 +19,16 @@ __all__ = ["main"]
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 
-def _mask_context(context):
-
-    choice = np.random.choice((0, 1, 2))
+def _mask_context(context, level_index):
     
-    if choice == 0:
+    if level_index == 0:
         # If 0, no masking is carried out, and all three context sets are passed on.
         return context
-    elif choice == 1:
+    elif level_index == 1:
         # If 1, y1t is masked, and only y2t and yc are passed as context
         context[1] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
         return context
-    elif choice == 2:
+    elif level_index == 2:
         # If 2, y1t and y2t are masked, and only yc is passed as context
         context[1] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
         context[2] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
@@ -41,12 +39,14 @@ def train(state, model, opt, objective, gen, *, fix_noise):
     """Train for an epoch."""
     vals = []
     for batch in gen.epoch():
+        level_index = np.random.choice((0, 1, 2))
         state, obj = objective(
             state,
             model,
-            _mask_context(batch["contexts"]),
+            _mask_context(batch["contexts"], level_index),
             batch["xt"],
             batch["yt"],
+            level_index,
             fix_noise=fix_noise,
         )
         vals.append(B.to_numpy(obj))
@@ -64,32 +64,34 @@ def train(state, model, opt, objective, gen, *, fix_noise):
 def eval(state, model, objective, gen):
     """Perform evaluation."""
     with torch.no_grad():
-        vals, kls, kls_diag = [], [], []
+        # vals, kls, kls_diag = [], [], []
+        vals = []
         for batch in gen.epoch():
+            level_index = np.random.choice((0, 1, 2))
             state, obj = objective(
                 state,
                 model,
-                batch["contexts"],
-                # _mask_context(batch["contexts"]),
+                _mask_context(batch["contexts"], level_index),
                 batch["xt"],
                 batch["yt"],
+                level_index,
             )
 
             # Save numbers.
-            n = nps.num_data(batch["xt"], batch["yt"])
+            # n = nps.num_data(batch["xt"], batch["yt"])
             vals.append(B.to_numpy(obj))
-            if "pred_logpdf" in batch:
-                kls.append(B.to_numpy(batch["pred_logpdf"] / n - obj))
-            if "pred_logpdf_diag" in batch:
-                kls_diag.append(B.to_numpy(batch["pred_logpdf_diag"] / n - obj))
+            # if "pred_logpdf" in batch:
+            #     kls.append(B.to_numpy(batch["pred_logpdf"] / n - obj))
+            # if "pred_logpdf_diag" in batch:
+            #     kls_diag.append(B.to_numpy(batch["pred_logpdf_diag"] / n - obj))
 
         # Report numbers.
         vals = B.concat(*vals)
         out.kv("Loglik (V)", exp.with_err(vals, and_lower=True))
-        if kls:
-            out.kv("KL (full)", exp.with_err(B.concat(*kls), and_upper=True))
-        if kls_diag:
-            out.kv("KL (diag)", exp.with_err(B.concat(*kls_diag), and_upper=True))
+        # if kls:
+        #     out.kv("KL (full)", exp.with_err(B.concat(*kls), and_upper=True))
+        # if kls_diag:
+        #     out.kv("KL (diag)", exp.with_err(B.concat(*kls_diag), and_upper=True))
 
         return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
 
@@ -128,7 +130,7 @@ def main(**kw_args):
         default="eq",
     )
     parser.add_argument("--mean-diff", type=float, default=None)
-    parser.add_argument("--objective", choices=["loglik", "elbo"], default="loglik")
+    parser.add_argument("--objective", choices=["loglik", "sl_loglik"], default="sl_loglik")
     parser.add_argument("--num-samples", type=int, default=20)
     parser.add_argument("--resume-at-epoch", type=int)
     parser.add_argument("--train-fast", action="store_true")
@@ -140,8 +142,8 @@ def main(**kw_args):
     parser.add_argument("--evaluate-num-plots", type=int, default=5)
     parser.add_argument(
         "--evaluate-objective",
-        choices=["loglik", "elbo"],
-        default="loglik",
+        choices=["loglik", "sl_loglik"],
+        default="sl_loglik",
     )
     parser.add_argument("--evaluate-num-samples", type=int, default=512)
     parser.add_argument("--evaluate-batch-size", type=int, default=8)
@@ -362,7 +364,7 @@ def main(**kw_args):
         )
         out.kv("Number of parameters", nps.num_params(model))
 
-    # Setup training objective.
+    # Setup training objective (new, single-level loglik)
     if args.objective == "loglik":
         objective = partial(
             nps.loglik,
@@ -385,39 +387,27 @@ def main(**kw_args):
                 ),
             )
         ]
-    elif args.objective == "elbo":
+    elif args.objective == "sl_loglik":
         objective = partial(
-            nps.elbo,
+            nps.sl_loglik,
             num_samples=args.num_samples,
-            subsume_context=True,
             normalise=not args.unnormalised,
         )
         objective_cv = partial(
-            nps.elbo,
+            nps.sl_loglik,
             num_samples=args.num_samples,
-            subsume_context=False,  # Lower bound the right quantity.
             normalise=not args.unnormalised,
         )
         objectives_eval = [
             (
-                "ELBO",
+                "SL_Loglik",
                 partial(
-                    nps.elbo,
-                    # Don't need a high number of samples, because it is unbiased.
-                    num_samples=5,
-                    subsume_context=False,  # Lower bound the right quantity.
-                    normalise=not args.unnormalised,
-                ),
-            ),
-            (
-                "Loglik",
-                partial(
-                    nps.loglik,
+                    nps.sl_loglik,
                     num_samples=args.evaluate_num_samples,
                     batch_size=args.evaluate_batch_size,
                     normalise=not args.unnormalised,
                 ),
-            ),
+            )
         ]
     else:
         raise RuntimeError(f'Invalid objective "{args.objective}".')
@@ -437,6 +427,7 @@ def main(**kw_args):
         exit()
 
     if args.evaluate:
+        print("Entered evaluate block")
         # Perform evaluation.
         if args.evaluate_last:
             name = "model-last.torch"
@@ -586,4 +577,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=10)
+    main(data="noised_sawtooth", dim_y=3, epochs=5, objective="sl_loglik")
