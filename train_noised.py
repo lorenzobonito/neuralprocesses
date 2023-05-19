@@ -258,6 +258,7 @@ def main(**kw_args):
     else:
         device = "cpu"
 
+    print(f"Running on device: {device}")
     B.set_global_device(device)
     # Maintain an explicit random state through the execution.
     state = B.create_random_state(torch.float32, seed=0)
@@ -577,4 +578,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=5, objective="sl_loglik")
+    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik")
