@@ -18,7 +18,7 @@ class NoisedSawtoothGenerator(SyntheticGenerator):
 
     def _noise_up(self, yt, beta=0.1):
 
-        return B.sqrt(1-beta)*yt + beta*torch.randn(yt.shape)
+        return B.sqrt(1-beta)*yt + beta*torch.randn(yt.shape).to(self.device)
 
     def generate_batch(self):
         with B.on_device(self.device):

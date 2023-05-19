@@ -577,4 +577,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=5, objective="sl_loglik")
+    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik")
