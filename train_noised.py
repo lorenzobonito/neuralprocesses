@@ -13,6 +13,7 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
+from noised_AR_pred import generate_AR_prediction
 
 __all__ = ["main"]
 
@@ -427,7 +428,6 @@ def main(**kw_args):
         exit()
 
     if args.evaluate:
-        print("Entered evaluate block")
         # Perform evaluation.
         if args.evaluate_last:
             name = "model-last.torch"
@@ -436,55 +436,57 @@ def main(**kw_args):
         model.load_state_dict(
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
-
+        
         if not args.ar or args.also_ar:
             # Make some plots.
             gen = gen_cv()
             for i in range(args.evaluate_num_plots):
-                exp.visualise(
+                exp.visualise_noised_1d(
                     model,
                     gen,
                     path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
                     config=config,
                 )
 
-            # For every objective and evaluation generator, do the evaluation.
-            for objecive_name, objective_eval in objectives_eval:
-                with out.Section(objecive_name):
-                    for gen_name, gen in gens_eval():
-                        with out.Section(gen_name.capitalize()):
-                            state, _ = eval(state, model, objective_eval, gen)
+        #     # For every objective and evaluation generator, do the evaluation.
+        #     for objecive_name, objective_eval in objectives_eval:
+        #         with out.Section(objecive_name):
+        #             for gen_name, gen in gens_eval():
+        #                 with out.Section(gen_name.capitalize()):
+        #                     state, _ = eval(state, model, objective_eval, gen)
+        
+        # # Always run AR evaluation for the conditional models.
+        # if not args.no_ar:
+        #     # Make some plots.
+        #     gen = gen_cv()
+        #     for i in range(args.evaluate_num_plots):
+        #         exp.visualise_noised_1d(
+        #             model,
+        #             gen,
+        #             path=wd.file(f"evaluate-ar-{i + 1:03d}.pdf"),
+        #             config=config,
+        #             predict=nps.ar_predict,
+        #         )
 
-        # Always run AR evaluation for the conditional models.
-        if not args.no_ar:
-            # Make some plots.
-            gen = gen_cv()
-            for i in range(args.evaluate_num_plots):
-                exp.visualise(
-                    model,
-                    gen,
-                    path=wd.file(f"evaluate-ar-{i + 1:03d}.pdf"),
-                    config=config,
-                    predict=nps.ar_predict,
-                )
+        #     with out.Section("AR"):
+        #         for name, gen in gens_eval():
+        #             with out.Section(name.capitalize()):
+        #                 state, _ = eval(
+        #                     state,
+        #                     model,
+        #                     partial(
+        #                         nps.ar_loglik,
+        #                         order="random",
+        #                         normalise=not args.unnormalised,
+        #                     ),
+        #                     gen,
+        #                 )
+        gen_pred = gen(batch_size=1)
+        state, loglik = generate_AR_prediction(state, model, gen, num_samples=5)
 
-            with out.Section("AR"):
-                for name, gen in gens_eval():
-                    with out.Section(name.capitalize()):
-                        state, _ = eval(
-                            state,
-                            model,
-                            partial(
-                                nps.ar_loglik,
-                                order="random",
-                                normalise=not args.unnormalised,
-                            ),
-                            gen,
-                        )
-
-        # Sleep for sixty seconds before exiting.
-        out.out("Finished evaluation. Sleeping for a minute before exiting.")
-        time.sleep(60)
+        # Sleep for ten seconds before exiting.
+        out.out("Finished evaluation. Sleeping for ten seconds before exiting.")
+        time.sleep(10)
     else:
         # Perform training. First, check if we want to resume training.
         start = 0
@@ -568,7 +570,7 @@ def main(**kw_args):
                 # Visualise a few predictions by the model.
                 gen = gen_cv()
                 for j in range(5):
-                    exp.visualise(
+                    exp.visualise_noised_1d(
                         model,
                         gen,
                         path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
@@ -577,4 +579,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="loglik")
+    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)

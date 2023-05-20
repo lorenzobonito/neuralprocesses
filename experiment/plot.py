@@ -5,7 +5,95 @@ import stheno
 import torch
 from wbml.plot import tweak
 
-__all__ = ["visualise"]
+__all__ = ["visualise", "visualise_noised_1d"]
+
+
+def visualise_noised_1d(model, gen, *, path, config, predict=nps.predict):
+    batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
+
+    try:
+        plot_config = config["plot"][1]
+    except KeyError:
+        return
+
+    # Define points to predict at.
+    with B.on_device(batch["xt"]):
+        x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 200)
+
+    # Predict with model.
+    with torch.no_grad():
+        mean, var, samples, _ = predict(
+            model,
+            batch["contexts"],
+            nps.AggregateInput(
+                *((x[None, None, :], i) for i in range(config["dim_y"]))
+            ),
+        )
+
+    plt.figure(figsize=(8, 6 * config["dim_y"]))
+
+    for i in range(config["dim_y"]):
+        plt.subplot(config["dim_y"], 1, 1 + i)
+
+        if i == 0:
+            xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][1][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
+            ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][1][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
+        elif i == 1:
+            xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
+            ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
+        elif i == 2:
+            xcontexts = batch["contexts"][0][0].squeeze(0)
+            ycontexts = batch["contexts"][0][1].squeeze(0)
+        else:
+            raise RuntimeError("Index error")
+
+        # Plot context and target.
+        plt.scatter(
+            xcontexts,
+            ycontexts,
+            label="Context",
+            style="train",
+            s=20,
+        )
+
+        plt.scatter(
+            batch["xt"][i][0],
+            batch["yt"][i],
+            label="Target",
+            style="test",
+            s=20,
+        )
+
+        # Plot prediction.
+        err = 1.96 * B.sqrt(var[i][0, 0])
+        plt.plot(
+            x,
+            mean[i][0, 0],
+            label="Prediction",
+            style="pred",
+        )
+        plt.fill_between(
+            x,
+            mean[i][0, 0] - err,
+            mean[i][0, 0] + err,
+            style="pred",
+        )
+        plt.plot(
+            x,
+            B.transpose(samples[i][:10, 0, 0]),
+            style="pred",
+            ls="-",
+            lw=0.5,
+        )
+
+        for x_axvline in plot_config["axvline"]:
+            plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+
+        plt.xlim(B.min(x), B.max(x))
+        tweak()
+
+    plt.savefig(path)
+    plt.close()
 
 
 def visualise(model, gen, *, path, config, predict=nps.predict):
