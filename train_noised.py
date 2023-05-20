@@ -13,27 +13,12 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
+from mask_context import mask_context
 from noised_AR_pred import generate_AR_prediction
 
-__all__ = ["main"]
+__all__ = ["main", "mask_context"]
 
 warnings.filterwarnings("ignore", category=ToDenseWarning)
-
-
-def _mask_context(context, level_index):
-    
-    if level_index == 0:
-        # If 0, no masking is carried out, and all three context sets are passed on.
-        return context
-    elif level_index == 1:
-        # If 1, y1t is masked, and only y2t and yc are passed as context
-        context[1] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
-        return context
-    elif level_index == 2:
-        # If 2, y1t and y2t are masked, and only yc is passed as context
-        context[1] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
-        context[2] = (B.randn(torch.float32, 16, 1, 0), B.randn(torch.float32, 16, 1, 0))
-        return context
     
 
 def train(state, model, opt, objective, gen, *, fix_noise):
@@ -44,7 +29,7 @@ def train(state, model, opt, objective, gen, *, fix_noise):
         state, obj = objective(
             state,
             model,
-            _mask_context(batch["contexts"], level_index),
+            mask_context(batch["contexts"], gen.batch_size, level_index),
             batch["xt"],
             batch["yt"],
             level_index,
@@ -72,7 +57,7 @@ def eval(state, model, objective, gen):
             state, obj = objective(
                 state,
                 model,
-                _mask_context(batch["contexts"], level_index),
+                mask_context(batch["contexts"], gen.batch_size, level_index),
                 batch["xt"],
                 batch["yt"],
                 level_index,
@@ -481,12 +466,19 @@ def main(**kw_args):
         #                     ),
         #                     gen,
         #                 )
-        gen_pred = gen(batch_size=1)
-        state, loglik = generate_AR_prediction(state, model, gen, num_samples=5)
 
-        # Sleep for ten seconds before exiting.
-        out.out("Finished evaluation. Sleeping for ten seconds before exiting.")
-        time.sleep(10)
+        # Evaluate different context sets
+        num_datasets = 10
+        logliks = []
+        for _ in range(num_datasets):
+            state, loglik = generate_AR_prediction(state, model, gen, num_samples=10)
+            logliks.append(loglik)
+        logliks = B.concat(*logliks)
+        out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
+
+        # # Sleep for ten seconds before exiting.
+        # out.out("Finished evaluation. Sleeping for ten seconds before exiting.")
+        # time.sleep(10)
     else:
         # Perform training. First, check if we want to resume training.
         start = 0
@@ -579,4 +571,5 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)
+    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik")
+    # main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)

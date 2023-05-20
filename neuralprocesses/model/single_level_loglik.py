@@ -1,10 +1,11 @@
 import lab as B
 import numpy as np
+from neuralprocesses.aggregate import Aggregate, AggregateInput
 
 from neuralprocesses.dist.normal import MultiOutputNormal
 
 from .model import Model
-from .util import fix_noise as fix_noise_in_pred
+# from .util import fix_noise as fix_noise_in_pred
 from .. import _dispatch
 from ..numdata import num_data
 
@@ -23,7 +24,7 @@ def sl_loglik(
     num_samples=1,
     batch_size=16,
     normalise=False,
-    fix_noise=None,
+    # fix_noise=None,
     **kw_args,
 ):
     """Log-likelihood objective.
@@ -65,7 +66,7 @@ def sl_loglik(
             dtype_lik=float64,
             **kw_args,
         )
-        pred = fix_noise_in_pred(pred, fix_noise)
+        # pred = fix_noise_in_pred(pred, fix_noise)
 
         # Select level of interest and isolate relevant predictions
         mean = list(pred.mean)[level_index].squeeze(2)
@@ -98,7 +99,7 @@ def sl_loglik(
 
     if normalise:
         # Normalise by the number of targets.
-        logpdfs = logpdfs / B.cast(float64, num_data(xt, yt))
+        logpdfs = logpdfs / B.cast(float64, num_data(AggregateInput(xt[0]), Aggregate(yt[0])))
 
     return state, logpdfs
 
