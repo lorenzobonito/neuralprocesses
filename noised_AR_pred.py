@@ -10,13 +10,12 @@ from mask_context import mask_context
 __all__ = ["generate_AR_prediction"]
 
 
-def generate_AR_prediction(state, model, gen, num_samples, normalise=True):
+def generate_AR_prediction(state, model, batch, num_samples, normalise=True):
 
-    gen.batch_size = 1
-    batch = gen.generate_batch()
     true_y0t = list(batch["yt"])[0]
     float = B.dtype_float(true_y0t)
     float64 = B.promote_dtypes(float, np.float64)
+    print(batch["contexts"][0][0].numel())
 
     with torch.no_grad():
 

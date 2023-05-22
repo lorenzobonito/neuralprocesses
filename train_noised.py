@@ -467,14 +467,31 @@ def main(**kw_args):
         #                     gen,
         #                 )
 
+        gen.batch_size = 1
+
         # Evaluate different context sets
         num_datasets = 10
         logliks = []
+        datasets = {
+            "contexts": [],
+            "xt": [],
+            "yt": []
+        }
         for _ in range(num_datasets):
-            state, loglik = generate_AR_prediction(state, model, gen, num_samples=10)
+            batch = gen.generate_batch()
+            datasets["contexts"].append(batch["contexts"][0])
+            datasets["xt"].append(batch["xt"][0][0])
+            datasets["yt"].append(batch["yt"][0])
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=1000)
             logliks.append(loglik)
         logliks = B.concat(*logliks)
+        print(logliks)
         out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
+
+        # print(datasets)
+        # import pickle
+        # with open("datasets.pickle", "wb") as f:
+        #     pickle.dump(datasets, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         # # Sleep for ten seconds before exiting.
         # out.out("Finished evaluation. Sleeping for ten seconds before exiting.")
@@ -571,5 +588,5 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik")
-    # main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)
+    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)
+    # main(data="noised_sawtooth", dim_y=3, epochs=100, objective="loglik", evaluate=True)

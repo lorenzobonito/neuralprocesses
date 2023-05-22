@@ -99,6 +99,8 @@ def sl_loglik(
 
     if normalise:
         # Normalise by the number of targets.
+        # NOTE: The code below is not OK if the number of targets varies between the three layers,
+        # and would need to be changed accordingly (e.g. keep track of how many targets alongside logpdfs)
         logpdfs = logpdfs / B.cast(float64, num_data(AggregateInput(xt[0]), Aggregate(yt[0])))
 
     return state, logpdfs

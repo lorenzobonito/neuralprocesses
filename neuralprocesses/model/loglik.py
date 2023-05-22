@@ -16,7 +16,7 @@ def loglik(
     contexts: list,
     xt,
     yt,
-    _,
+    # _,
     *,
     num_samples=1,
     batch_size=16,
@@ -63,7 +63,7 @@ def loglik(
             dtype_lik=float64,
             **kw_args,
         )
-        pred = fix_noise_in_pred(pred, fix_noise)
+        # pred = fix_noise_in_pred(pred, fix_noise)
         this_logpdfs = pred.logpdf(B.cast(float64, yt))
 
         # If the number of samples is equal to one but `num_samples > 1`, then the
