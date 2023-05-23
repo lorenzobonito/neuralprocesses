@@ -477,12 +477,12 @@ def main(**kw_args):
             "xt": [],
             "yt": []
         }
-        for _ in range(num_datasets):
+        for j in range(num_datasets):
             batch = gen.generate_batch()
             datasets["contexts"].append(batch["contexts"][0])
             datasets["xt"].append(batch["xt"][0][0])
             datasets["yt"].append(batch["yt"][0])
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=1000)
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=50, path=wd.file(f"noised_AR_pred-{j + 1:03d}.png"), config=config)
             logliks.append(loglik)
         logliks = B.concat(*logliks)
         print(logliks)

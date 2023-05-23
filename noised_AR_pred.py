@@ -3,44 +3,87 @@ from neuralprocesses.aggregate import Aggregate, AggregateInput
 import neuralprocesses.torch as nps
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 from neuralprocesses.dist.normal import MultiOutputNormal
+from wbml.plot import tweak
 from mask_context import mask_context
 
 __all__ = ["generate_AR_prediction"]
 
 
-def generate_AR_prediction(state, model, batch, num_samples, normalise=True):
+def generate_AR_prediction(state, model, batch, num_samples, normalise=True, path=None, config=None):
 
     true_y0t = list(batch["yt"])[0]
     float = B.dtype_float(true_y0t)
     float64 = B.promote_dtypes(float, np.float64)
-    print(batch["contexts"][0][0].numel())
+    
+    if config:
+        try:
+            plot_config = config["plot"][1]
+            plt.figure(figsize=(8, 6 * config["dim_y"]))
+        except KeyError:
+            return
+    
+    with B.on_device(batch["xt"]):
+        x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 100)
 
     with torch.no_grad():
 
         logpdfs = None
-        for _ in range(num_samples):
+        for i in range(num_samples):
 
             # Generating predictions for y2t
             contexts = mask_context(batch["contexts"], 1, 2)
-            state, _, _, _, yt = nps.predict(state,
-                                             model,
-                                             contexts,
-                                             batch["xt"],
-                                             num_samples=1,
-                                             batch_size=1)
+            state, mean, var, _, yt = nps.predict(state,
+                                                   model,
+                                                   contexts,
+                                                   batch["xt"],
+                                                   num_samples=1,
+                                                   batch_size=1)
             y2t_pred = list(yt)[2].squeeze(0).float()
+
+            if config:
+                xcontexts = batch["contexts"][0][0].squeeze(0)
+                ycontexts = batch["contexts"][0][1].squeeze(0)
+                plt.subplot(3, 1, 3)
+                plt.scatter(xcontexts, ycontexts, label="Context", style="train", s=20)
+                plt.scatter(batch["xt"][2][0], batch["yt"][2], label="Target", style="test", s=20)
+                err = 1.96 * B.sqrt(var[2][0, 0])
+                plt.plot(x, mean[2][0, 0], label="Prediction", style="pred")
+                plt.fill_between(x, mean[2][0, 0] - err, mean[2][0, 0] + err, style="pred")
+                plt.scatter(batch["xt"][2][0], y2t_pred, marker="s", c="tab:red", s=20, label="Prediction sample")
+
+                for x_axvline in plot_config["axvline"]:
+                    plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+                plt.xlim(B.min(x), B.max(x))
+                tweak()
 
             # Generating predictions for y1t
             contexts[2] = (list(batch["xt"])[0][0], y2t_pred)
-            state, _, _, _, yt = nps.predict(state,
-                                             model,
-                                             contexts,
-                                             batch["xt"],
-                                             num_samples=1,
-                                             batch_size=1)
+            state, mean, var, _, yt = nps.predict(state,
+                                                   model,
+                                                   contexts,
+                                                   batch["xt"],
+                                                   num_samples=1,
+                                                   batch_size=1)
             y1t_pred = list(yt)[1].squeeze(0).float()
+        
+            if config:
+                xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
+                ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
+                plt.subplot(3, 1, 2)
+                plt.scatter(xcontexts, ycontexts, label="Context", style="train", s=20)
+                plt.scatter(batch["xt"][1][0], batch["yt"][1], label="Target", style="test", s=20)
+                err = 1.96 * B.sqrt(var[1][0, 0])
+                plt.plot(x, mean[1][0, 0], label="Prediction", style="pred")
+                plt.fill_between(x, mean[1][0, 0] - err, mean[1][0, 0] + err, style="pred")
+                plt.scatter(batch["xt"][1][0], y1t_pred, marker="s", c="tab:green", s=20, label="Prediction sample")
+
+                for x_axvline in plot_config["axvline"]:
+                    plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+                plt.xlim(B.min(x), B.max(x))
+                tweak()
 
             # Generating predictions for y0t
             contexts[1] = (list(batch["xt"])[0][0], y1t_pred)
@@ -66,6 +109,27 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True):
                 logpdfs = this_logpdfs
             else:
                 logpdfs = B.concat(logpdfs, this_logpdfs, axis=0)
+            
+            if config:
+                xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][1][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
+                ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][1][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
+                plt.subplot(3, 1, 1)
+                plt.scatter(xcontexts, ycontexts, label="Context", style="train", s=20)
+                plt.scatter(batch["xt"][0][0], batch["yt"][0], label="Target", style="test", s=20)
+                err = 1.96 * B.sqrt(pred.var[0][0, 0])
+                plt.plot(x, pred.mean[0][0, 0], label="Prediction", style="pred")
+                plt.fill_between(x, pred.mean[0][0, 0] - err, pred.mean[0][0, 0] + err, style="pred")
+            
+                for x_axvline in plot_config["axvline"]:
+                    plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+                plt.xlim(B.min(x), B.max(x))
+                tweak()
+
+                plt.savefig(path)
+            
+            if i == 0:
+                # Disable plot after first sample
+                config=False
 
         # Average over samples.
         logpdfs = B.logsumexp(logpdfs, axis=0) - B.log(num_samples)
