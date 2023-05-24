@@ -582,6 +582,7 @@ def main(**kw_args):
         if not args.ar or args.also_ar:
             # Make some plots.
             gen = gen_cv()
+            gen.batch_size = 1
             for i in range(args.evaluate_num_plots):
                 exp.visualise_split(
                     model,
@@ -753,6 +754,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", epochs=10, model_index=0)
-    main(data="noised_sawtooth", epochs=10, model_index=1)
-    main(data="noised_sawtooth", epochs=10, model_index=2)
+    main(data="noised_sawtooth", epochs=10, model_index=0, evaluate=True)
+    main(data="noised_sawtooth", epochs=10, model_index=1, evaluate=True)
+    main(data="noised_sawtooth", epochs=10, model_index=2, evaluate=True)

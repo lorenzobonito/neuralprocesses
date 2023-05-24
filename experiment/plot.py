@@ -10,10 +10,21 @@ from mask_context import mask_context
 __all__ = ["visualise", "visualise_noised_1d", "visualise_split"]
 
 
+def unify_contexts(contexts):
+
+    xcontexts = tuple([context[0] for context in contexts])
+    ycontexts = tuple([context[1] for context in contexts])
+
+    return [(torch.cat(xcontexts, 2), torch.cat(ycontexts, 2))]
+
+
 def visualise_split(model, gen, *, path, config, model_index, predict=nps.predict):
 
-    batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
+    # batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
+    # gen.batch_size = 1
+    batch = gen.generate_batch()
     batch["contexts"] = mask_context(batch["contexts"], gen.batch_size, model_index)
+    batch["contexts"] = unify_contexts(batch["contexts"])
     batch["xt"] = batch["xt"][model_index][0]
     batch["yt"] = batch["yt"][model_index]
 
@@ -41,26 +52,35 @@ def visualise_split(model, gen, *, path, config, model_index, predict=nps.predic
     for i in range(config["dim_y"]):
         plt.subplot(config["dim_y"], 1, 1 + i)
 
-        if model_index == 0:
-            xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][1][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
-            ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][1][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
-        elif model_index == 1:
-            xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
-            ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
-        elif model_index == 2:
-            xcontexts = batch["contexts"][0][0].squeeze(0)
-            ycontexts = batch["contexts"][0][1].squeeze(0)
-        else:
-            raise RuntimeError("Invalid model_index.")
+        # if model_index == 0:
+        #     xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][1][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
+        #     ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][1][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
+        # elif model_index == 1:
+        #     xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
+        #     ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
+        # elif model_index == 2:
+        #     xcontexts = batch["contexts"][0][0].squeeze(0)
+        #     ycontexts = batch["contexts"][0][1].squeeze(0)
+        # else:
+        #     raise RuntimeError("Invalid model_index.")
 
         # Plot context and target.
+        # plt.scatter(
+        #     xcontexts,
+        #     ycontexts,
+        #     label="Context",
+        #     style="train",
+        #     s=20,
+        # )
+
         plt.scatter(
-            xcontexts,
-            ycontexts,
+            batch["contexts"][0][0].squeeze(0),
+            batch["contexts"][0][1].squeeze(0),
             label="Context",
             style="train",
             s=20,
         )
+
 
         plt.scatter(
             batch["xt"],
