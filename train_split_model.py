@@ -14,7 +14,7 @@ import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 
-from context_utils import mask_context
+from context_utils import mask_contexts
 
 __all__ = ["main"]
 
@@ -28,7 +28,7 @@ def train(state, model, opt, objective, gen, *, fix_noise, model_index):
         state, obj = objective(
             state,
             model,
-            mask_context(batch["contexts"], gen.batch_size, model_index),
+            mask_contexts(batch["contexts"], gen.batch_size, model_index),
             batch["xt"][model_index][0],
             batch["yt"][model_index],
             fix_noise=fix_noise,
@@ -53,7 +53,7 @@ def eval(state, model, objective, gen, model_index):
             state, obj = objective(
                 state,
                 model,
-                mask_context(batch["contexts"], gen.batch_size, model_index),
+                mask_contexts(batch["contexts"], gen.batch_size, model_index),
                 batch["xt"][model_index][0],
                 batch["yt"][model_index],
             )
@@ -743,6 +743,7 @@ def main(**kw_args):
 
                 # Visualise a few predictions by the model.
                 gen = gen_cv()
+                gen.batch_size = 1
                 for j in range(5):
                     exp.visualise_split(
                         model,
@@ -754,6 +755,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", epochs=10, model_index=0, evaluate=True)
-    main(data="noised_sawtooth", epochs=10, model_index=1, evaluate=True)
-    main(data="noised_sawtooth", epochs=10, model_index=2, evaluate=True)
+    main(data="noised_sawtooth", epochs=100, model_index=0)
+    main(data="noised_sawtooth", epochs=100, model_index=1)
+    main(data="noised_sawtooth", epochs=100, model_index=2)

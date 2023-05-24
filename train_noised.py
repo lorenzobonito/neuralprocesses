@@ -13,10 +13,10 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
-from context_utils import mask_context
+from context_utils import mask_contexts
 from noised_AR_pred import generate_AR_prediction
 
-__all__ = ["main", "mask_context"]
+__all__ = ["main"]
 
 warnings.filterwarnings("ignore", category=ToDenseWarning)
     
@@ -29,7 +29,7 @@ def train(state, model, opt, objective, gen, *, fix_noise):
         state, obj = objective(
             state,
             model,
-            mask_context(batch["contexts"], gen.batch_size, level_index),
+            mask_contexts(batch["contexts"], gen.batch_size, level_index),
             batch["xt"],
             batch["yt"],
             level_index,
@@ -57,7 +57,7 @@ def eval(state, model, objective, gen):
             state, obj = objective(
                 state,
                 model,
-                mask_context(batch["contexts"], gen.batch_size, level_index),
+                mask_contexts(batch["contexts"], gen.batch_size, level_index),
                 batch["xt"],
                 batch["yt"],
                 level_index,

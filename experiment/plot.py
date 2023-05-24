@@ -5,7 +5,7 @@ import stheno
 import torch
 from wbml.plot import tweak
 
-from context_utils import mask_context, unify_contexts
+from context_utils import mask_contexts
 
 __all__ = ["visualise", "visualise_noised_1d", "visualise_split"]
 
@@ -15,8 +15,7 @@ def visualise_split(model, gen, *, path, config, model_index, predict=nps.predic
     # batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
     # gen.batch_size = 1
     batch = gen.generate_batch()
-    batch["contexts"] = mask_context(batch["contexts"], gen.batch_size, model_index)
-    batch["contexts"] = unify_contexts(batch["contexts"])
+    batch["contexts"] = mask_contexts(batch["contexts"], gen.batch_size, model_index)
     batch["xt"] = batch["xt"][model_index][0]
     batch["yt"] = batch["yt"][model_index]
 
@@ -43,27 +42,6 @@ def visualise_split(model, gen, *, path, config, model_index, predict=nps.predic
 
     for i in range(config["dim_y"]):
         plt.subplot(config["dim_y"], 1, 1 + i)
-
-        # if model_index == 0:
-        #     xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][1][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
-        #     ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][1][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
-        # elif model_index == 1:
-        #     xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
-        #     ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
-        # elif model_index == 2:
-        #     xcontexts = batch["contexts"][0][0].squeeze(0)
-        #     ycontexts = batch["contexts"][0][1].squeeze(0)
-        # else:
-        #     raise RuntimeError("Invalid model_index.")
-
-        # Plot context and target.
-        # plt.scatter(
-        #     xcontexts,
-        #     ycontexts,
-        #     label="Context",
-        #     style="train",
-        #     s=20,
-        # )
 
         plt.scatter(
             batch["contexts"][0][0].squeeze(0),
