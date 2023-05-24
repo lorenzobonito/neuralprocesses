@@ -7,9 +7,119 @@ import matplotlib.pyplot as plt
 
 from neuralprocesses.dist.normal import MultiOutputNormal
 from wbml.plot import tweak
-from context_utils import mask_context
+from context_utils import mask_contexts
 
-__all__ = ["generate_AR_prediction"]
+__all__ = ["generate_AR_prediction", "split_AR_prediction"]
+
+
+def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=None, config=None):
+
+    true_y0t = batch["yt"][0]
+    float = B.dtype_float(true_y0t)
+    float64 = B.promote_dtypes(float, np.float64)
+    
+    if config:
+        try:
+            plot_config = config["plot"][1]
+            plt.figure(figsize=(8, 6 * 3))
+        except KeyError:
+            return
+    
+    with B.on_device(batch["xt"]):
+        x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 100)
+        x = x[None, None, :]
+
+    with torch.no_grad():
+
+        logpdfs = None
+        for i in range(num_samples):
+
+            # Generating predictions for y2t
+            contexts = mask_contexts(batch["contexts"], 1, 2)
+            state, mean, var, _, yt = nps.predict(state,
+                                                  models[2],
+                                                  contexts,
+                                                  x,
+                                                  num_samples=1,
+                                                  batch_size=1)
+            y2t_pred = yt.squeeze(0).float()
+
+            if config:
+                plt.subplot(3, 1, 3)
+                plt.scatter(contexts[0][0], contexts[0][1], label="Context", style="train", s=20)
+                plt.scatter(batch["xt"][2][0], batch["yt"][2], label="Target", style="test", s=20)
+                err = 1.96 * B.sqrt(var[0, 0])
+                plt.plot(x, mean[0, 0], label="Prediction", style="pred")
+                plt.fill_between(x, mean[0, 0] - err, mean[0, 0] + err, style="pred")
+                plt.scatter(x, y2t_pred, marker="s", c="tab:red", s=20, label="Prediction sample")
+
+                for x_axvline in plot_config["axvline"]:
+                    plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+                plt.xlim(B.min(x), B.max(x))
+                tweak()
+
+            # Generating predictions for y1t
+            contexts = [(torch.cat((contexts[0][0], x), 2), torch.cat((contexts[0][1], y2t_pred), 2))]
+            state, mean, var, _, yt = nps.predict(state,
+                                                  models[1],
+                                                  contexts,
+                                                  x,
+                                                  num_samples=1,
+                                                  batch_size=1)
+            y1t_pred = yt.squeeze(0).float()
+        
+            if config:
+                plt.subplot(3, 1, 2)
+                plt.scatter(contexts[0][0], contexts[0][1], label="Context", style="train", s=20)
+                plt.scatter(batch["xt"][1][0], batch["yt"][1], label="Target", style="test", s=20)
+                err = 1.96 * B.sqrt(var[0, 0])
+                plt.plot(x, mean[0, 0], label="Prediction", style="pred")
+                plt.fill_between(x, mean[0, 0] - err, mean[0, 0] + err, style="pred")
+                plt.scatter(x, y1t_pred, marker="s", c="tab:green", s=20, label="Prediction sample")
+
+                for x_axvline in plot_config["axvline"]:
+                    plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+                plt.xlim(B.min(x), B.max(x))
+                tweak()
+
+            # Generating predictions for y0t
+            contexts = [(torch.cat((contexts[0][0], x), 2), torch.cat((contexts[0][1], y1t_pred), 2))]
+            state, pred = models[0](state, contexts, x)
+
+            if config:
+                plt.subplot(3, 1, 1)
+                plt.scatter(contexts[0][0], contexts[0][1], label="Context", style="train", s=20)
+                plt.scatter(batch["xt"][0][0], batch["yt"][0], label="Target", style="test", s=20)
+                err = 1.96 * B.sqrt(pred.var[0, 0])
+                plt.plot(x, pred.mean[0, 0], label="Prediction", style="pred")
+                plt.fill_between(x, pred.mean[0, 0] - err, pred.mean[0, 0] + err, style="pred")
+
+                for x_axvline in plot_config["axvline"]:
+                    plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
+                plt.xlim(B.min(x), B.max(x))
+                tweak()
+
+            plt.savefig(path)
+            
+            if i == 0:
+                # Disable plot after first sample
+                config=False
+
+            this_logpdfs = pred.logpdf(B.cast(float64, true_y0t))
+
+            if logpdfs is None:
+                logpdfs = this_logpdfs
+            else:
+                logpdfs = B.concat(logpdfs, this_logpdfs, axis=0)
+
+        # Average over samples.
+        logpdfs = B.logsumexp(logpdfs, axis=0) - B.log(num_samples)
+
+        if normalise:
+            # Normalise by the number of targets.
+            logpdfs = logpdfs / B.cast(float64, nps.num_data(AggregateInput(batch["xt"][0]), Aggregate(batch["yt"][0])))
+
+    return state, logpdfs
 
 
 def generate_AR_prediction(state, model, batch, num_samples, normalise=True, path=None, config=None):

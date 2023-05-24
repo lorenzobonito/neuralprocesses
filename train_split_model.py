@@ -15,6 +15,7 @@ from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 
 from context_utils import mask_contexts
+from noised_AR_pred import split_AR_prediction
 
 __all__ = ["main"]
 
@@ -570,96 +571,36 @@ def main(**kw_args):
         exit()
 
     if args.evaluate:
-        # Perform evaluation.
-        if args.evaluate_last:
-            name = "model-last.torch"
-        else:
-            name = "model-best.torch"
-        model.load_state_dict(
-            patch_model(torch.load(wd.file(name), map_location=device))["weights"]
-        )
 
-        if not args.ar or args.also_ar:
-            # Make some plots.
-            gen = gen_cv()
-            gen.batch_size = 1
-            for i in range(args.evaluate_num_plots):
-                exp.visualise_split(
-                    model,
-                    gen,
-                    path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
-                    config=config,
-                    model_index=args.model_index
-                )
+        wds = [WorkingDirectory(*args.root, data_dir, args.model, model_index) for model_index in ["0", "1", "2"]]
+        models = [model]*len(wds)
+        
+        for i, dir in enumerate(wds):
+            models[i].load_state_dict(patch_model(torch.load(dir.file("model-best.torch"), map_location=device))["weights"])
 
-        #     # For every objective and evaluation generator, do the evaluation.
-        #     for objecive_name, objective_eval in objectives_eval:
-        #         with out.Section(objecive_name):
-        #             for gen_name, gen in gens_eval():
-        #                 with out.Section(gen_name.capitalize()):
-        #                     state, _ = eval(state, model, objective_eval, gen)
-
-        # # Always run AR evaluation for the conditional models.
-        # if not args.no_ar and (
-        #     args.model in {"cnp", "acnp", "convcnp"} or args.ar or args.also_ar
-        # ):
-        #     # Make some plots.
-        #     gen = gen_cv()
-        #     for i in range(args.evaluate_num_plots):
-        #         exp.visualise(
-        #             model,
-        #             gen,
-        #             path=wd.file(f"evaluate-ar-{i + 1:03d}.pdf"),
-        #             config=config,
-        #             predict=nps.ar_predict,
-        #         )
-
-        #     with out.Section("AR"):
-        #         for name, gen in gens_eval():
-        #             with out.Section(name.capitalize()):
-        #                 state, _ = eval(
-        #                     state,
-        #                     model,
-        #                     partial(
-        #                         nps.ar_loglik,
-        #                         order="random",
-        #                         normalise=not args.unnormalised,
-        #                     ),
-        #                     gen,
-        #                 )
-
+        gen = gen_cv()
         gen.batch_size = 1
 
         # Evaluate different context sets
-        
-        import pickle
-        with open("datasets.pickle","rb") as f:
-            datasets = pickle.load(f)
-        
+        num_datasets = 10
         logliks = []
-        for context, xt, yt in zip(datasets["contexts"], datasets["xt"], datasets["yt"]):
-            state, loglik = objective(
-                state,
-                model,
-                [context],
-                xt,
-                yt,
-                fix_noise=False,
-            )
+        datasets = {
+            "contexts": [],
+            "xt": [],
+            "yt": []
+        }
+        for j in range(num_datasets):
+            batch = gen.generate_batch()
+            print(f'{j}: {batch["contexts"][0][0].numel()}')
+            datasets["contexts"].append(batch["contexts"][0])
+            datasets["xt"].append(batch["xt"][0][0])
+            datasets["yt"].append(batch["yt"][0])
+            state, loglik = split_AR_prediction(state, models, batch, num_samples=100, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
-
         logliks = B.concat(*logliks)
         print(logliks)
         out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
-        #     state, loglik = generate_AR_prediction(state, model, batch, num_samples=100)
-        #     logliks.append(loglik)
-        # logliks = B.concat(*logliks)
-        # print(logliks)
-        # out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
 
-        # # Sleep for sixty seconds before exiting.
-        # out.out("Finished evaluation. Sleeping for a minute before exiting.")
-        # time.sleep(60)
     else:
         # Perform training. First, check if we want to resume training.
         start = 0
@@ -755,6 +696,7 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", epochs=100, model_index=0)
-    main(data="noised_sawtooth", epochs=100, model_index=1)
-    main(data="noised_sawtooth", epochs=100, model_index=2)
+    # main(data="noised_sawtooth", epochs=100, model_index=0, evaluate=True)
+    # main(data="noised_sawtooth", epochs=100, model_index=1, evaluate=True)
+    # main(data="noised_sawtooth", epochs=100, model_index=2, evaluate=True)
+    main(data="noised_sawtooth", epochs=100, model_index=-1, evaluate=True)
