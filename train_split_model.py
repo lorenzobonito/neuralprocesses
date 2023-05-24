@@ -14,7 +14,7 @@ import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 
-from mask_context import mask_context
+from context_utils import mask_context
 
 __all__ = ["main"]
 

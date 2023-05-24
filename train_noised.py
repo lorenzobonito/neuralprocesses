@@ -13,7 +13,7 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
-from mask_context import mask_context
+from context_utils import mask_context
 from noised_AR_pred import generate_AR_prediction
 
 __all__ = ["main", "mask_context"]

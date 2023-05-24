@@ -5,17 +5,9 @@ import stheno
 import torch
 from wbml.plot import tweak
 
-from mask_context import mask_context
+from context_utils import mask_context, unify_contexts
 
 __all__ = ["visualise", "visualise_noised_1d", "visualise_split"]
-
-
-def unify_contexts(contexts):
-
-    xcontexts = tuple([context[0] for context in contexts])
-    ycontexts = tuple([context[1] for context in contexts])
-
-    return [(torch.cat(xcontexts, 2), torch.cat(ycontexts, 2))]
 
 
 def visualise_split(model, gen, *, path, config, model_index, predict=nps.predict):

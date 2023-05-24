@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from neuralprocesses.dist.normal import MultiOutputNormal
 from wbml.plot import tweak
-from mask_context import mask_context
+from context_utils import mask_context
 
 __all__ = ["generate_AR_prediction"]
 
