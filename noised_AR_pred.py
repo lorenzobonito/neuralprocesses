@@ -26,7 +26,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             return
     
     with B.on_device(batch["xt"]):
-        x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 100)
+        x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 200)
         x = x[None, None, :]
 
     with torch.no_grad():
@@ -36,12 +36,18 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
 
             # Generating predictions for y2t
             contexts = mask_contexts(batch["contexts"], 1, 2)
-            state, mean, var, _, yt = nps.predict(state,
+            state, mean, var, _, _ = nps.predict(state,
                                                   models[2],
                                                   contexts,
                                                   x,
                                                   num_samples=1,
                                                   batch_size=1)
+            state, _, _, _, yt = nps.predict(state,
+                                             models[2],
+                                             contexts,
+                                             batch["xt"][2][0],
+                                             num_samples=1,
+                                             batch_size=1)
             y2t_pred = yt.squeeze(0).float()
 
             if config:
@@ -51,7 +57,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 err = 1.96 * B.sqrt(var[0, 0])
                 plt.plot(x, mean[0, 0], label="Prediction", style="pred")
                 plt.fill_between(x, mean[0, 0] - err, mean[0, 0] + err, style="pred")
-                plt.scatter(x, y2t_pred, marker="s", c="tab:red", s=20, label="Prediction sample")
+                plt.scatter(batch["xt"][2][0], y2t_pred, marker="s", c="tab:red", s=20, label="Prediction sample")
 
                 for x_axvline in plot_config["axvline"]:
                     plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
@@ -59,13 +65,19 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 tweak()
 
             # Generating predictions for y1t
-            contexts = [(torch.cat((contexts[0][0], x), 2), torch.cat((contexts[0][1], y2t_pred), 2))]
-            state, mean, var, _, yt = nps.predict(state,
+            contexts = [(torch.cat((contexts[0][0], batch["xt"][2][0]), 2), torch.cat((contexts[0][1], y2t_pred), 2))]
+            state, mean, var, _, _ = nps.predict(state,
                                                   models[1],
                                                   contexts,
                                                   x,
                                                   num_samples=1,
                                                   batch_size=1)
+            state, _, _, _, yt = nps.predict(state,
+                                             models[1],
+                                             contexts,
+                                             batch["xt"][1][0],
+                                             num_samples=1,
+                                             batch_size=1)
             y1t_pred = yt.squeeze(0).float()
         
             if config:
@@ -75,7 +87,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 err = 1.96 * B.sqrt(var[0, 0])
                 plt.plot(x, mean[0, 0], label="Prediction", style="pred")
                 plt.fill_between(x, mean[0, 0] - err, mean[0, 0] + err, style="pred")
-                plt.scatter(x, y1t_pred, marker="s", c="tab:green", s=20, label="Prediction sample")
+                plt.scatter(batch["xt"][1][0], y1t_pred, marker="s", c="tab:green", s=20, label="Prediction sample")
 
                 for x_axvline in plot_config["axvline"]:
                     plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
@@ -83,7 +95,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 tweak()
 
             # Generating predictions for y0t
-            contexts = [(torch.cat((contexts[0][0], x), 2), torch.cat((contexts[0][1], y1t_pred), 2))]
+            contexts = [(torch.cat((contexts[0][0], batch["xt"][1][0]), 2), torch.cat((contexts[0][1], y1t_pred), 2))]
             state, pred = models[0](state, contexts, x)
 
             if config:
@@ -104,6 +116,8 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             if i == 0:
                 # Disable plot after first sample
                 config=False
+            
+            state, pred = models[0](state, contexts, batch["xt"][0][0])
 
             this_logpdfs = pred.logpdf(B.cast(float64, true_y0t))
 
