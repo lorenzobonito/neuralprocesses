@@ -22,62 +22,6 @@ __all__ = ["main"]
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 
-def train(state, model, opt, objective, gen, *, fix_noise, model_index):
-    """Train for an epoch."""
-    vals = []
-    for batch in gen.epoch():
-        state, obj = objective(
-            state,
-            model,
-            mask_contexts(batch["contexts"], gen.batch_size, model_index),
-            batch["xt"][model_index][0],
-            batch["yt"][model_index],
-            fix_noise=fix_noise,
-        )
-        vals.append(B.to_numpy(obj))
-        # Be sure to negate the output of `objective`.
-        val = -B.mean(obj)
-        opt.zero_grad(set_to_none=True)
-        val.backward()
-        opt.step()
-
-    vals = B.concat(*vals)
-    out.kv("Loglik (T)", exp.with_err(vals, and_lower=True))
-    return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
-
-
-def eval(state, model, objective, gen, model_index):
-    """Perform evaluation."""
-    with torch.no_grad():
-        vals, kls, kls_diag = [], [], []
-        for batch in gen.epoch():
-            state, obj = objective(
-                state,
-                model,
-                mask_contexts(batch["contexts"], gen.batch_size, model_index),
-                batch["xt"][model_index][0],
-                batch["yt"][model_index],
-            )
-
-            # Save numbers.
-            n = nps.num_data(batch["xt"], batch["yt"])
-            vals.append(B.to_numpy(obj))
-            if "pred_logpdf" in batch:
-                kls.append(B.to_numpy(batch["pred_logpdf"] / n - obj))
-            if "pred_logpdf_diag" in batch:
-                kls_diag.append(B.to_numpy(batch["pred_logpdf_diag"] / n - obj))
-
-        # Report numbers.
-        vals = B.concat(*vals)
-        out.kv("Loglik (V)", exp.with_err(vals, and_lower=True))
-        if kls:
-            out.kv("KL (full)", exp.with_err(B.concat(*kls), and_upper=True))
-        if kls_diag:
-            out.kv("KL (diag)", exp.with_err(B.concat(*kls_diag), and_upper=True))
-
-        return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
-
-
 def main(**kw_args):
     # Setup arguments.
     parser = argparse.ArgumentParser()
@@ -424,11 +368,45 @@ def main(**kw_args):
 
     if args.evaluate:
 
-        model_1 = nps.construct_convgnp(
+        model.load_state_dict(patch_model(torch.load(wd.file("model-best.torch"), map_location=device))["weights"])
+
+        xc = B.randn(torch.float32, 1, 1, 20)
+        yc = B.randn(torch.float32, 1, 1, 20)
+        xt = B.randn(torch.float32, 1, 1, 20)
+        y1t = B.randn(torch.float32, 1, 1, 20)
+        y2t = B.randn(torch.float32, 1, 1, 20)
+
+        # pred = model(
+        #     [
+        #         (
+        #             xc, yc
+        #         ),
+        #         # (
+        #         #     xt, y1t
+        #         # )
+        #     ],
+        #     xt
+        # )
+        # print(pred.mean)
+
+        wd = WorkingDirectory(
+            *args.root,
+            *(args.subdir or ()),
+            data_dir,
+            *((f"x1_y3",) if hasattr(args, "dim_x") else ()),
+            args.model,
+            *((args.arch,) if hasattr(args, "arch") else ()),
+            args.objective,
+            log=f"log{suffix}.txt",
+            diff=f"diff{suffix}.txt",
+            observe=observe,
+        )
+
+        model = nps.construct_convgnp(
             points_per_unit=config["points_per_unit"],
             dim_x=config["dim_x"],
-            dim_yc=(1,) * config["dim_y"],
-            dim_yt=config["dim_y"],
+            dim_yc=(1, 1, 1),
+            dim_yt=1,
             likelihood="het",
             conv_arch=args.arch,
             unet_channels=config["unet_channels"],
@@ -440,159 +418,25 @@ def main(**kw_args):
             encoder_scales=config["encoder_scales"],
             transform=config["transform"],
         )
-
-        model_2 = nps.construct_convgnp(
-            points_per_unit=config["points_per_unit"],
-            dim_x=config["dim_x"],
-            dim_yc=(1,) * config["dim_y"],
-            dim_yt=config["dim_y"],
-            likelihood="het",
-            conv_arch=args.arch,
-            unet_channels=config["unet_channels"],
-            unet_strides=config["unet_strides"],
-            conv_channels=config["conv_channels"],
-            conv_layers=config["num_layers"],
-            conv_receptive_field=config["conv_receptive_field"],
-            margin=config["margin"],
-            encoder_scales=config["encoder_scales"],
-            transform=config["transform"],
-        )
-
-        model_1 = model_1.to(device)
-        model_2 = model_2.to(device)
-
-        wds = [WorkingDirectory(*args.root, data_dir, args.model, model_index) for model_index in ["0", "1", "2"]]
-        models = [model, model_1, model_2]
         
-        for i, dir in enumerate(wds):
-            models[i].load_state_dict(patch_model(torch.load(dir.file("model-best.torch"), map_location=device))["weights"])
+        model.load_state_dict(patch_model(torch.load(wd.file("model-best.torch"), map_location=device))["weights"])
+        model.to(device)
 
-        gen = gen_cv()
-        gen.batch_size = 1
-
-        # Evaluate different context sets
-        num_datasets = 10
-        logliks = []
-        datasets = {
-            "contexts": [],
-            "xt": [],
-            "yt": []
-        }
-        for j in range(num_datasets):
-            batch = gen.generate_batch()
-            print(f'{j}: {batch["contexts"][0][0].numel()}')
-            datasets["contexts"].append(batch["contexts"][0])
-            datasets["xt"].append(batch["xt"][0][0])
-            datasets["yt"].append(batch["yt"][0])
-            state, loglik = split_AR_prediction(state, models, batch, num_samples=1000, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
-            logliks.append(loglik)
-        logliks = B.concat(*logliks)
-        print(logliks)
-        out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
-
-        # import pickle
-        # with open("datasets.pickle", "wb") as f:
-        #     pickle.dump(datasets, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-    else:
-        # Perform training. First, check if we want to resume training.
-        start = 0
-        if args.resume_at_epoch:
-            start = args.resume_at_epoch - 1
-            d_last = patch_model(
-                torch.load(wd.file("model-last.torch"), map_location=device)
-            )
-            d_best = patch_model(
-                torch.load(wd.file("model-best.torch"), map_location=device)
-            )
-            model.load_state_dict(d_last["weights"])
-            best_eval_lik = d_best["objective"]
-        else:
-            best_eval_lik = -np.inf
-
-        # Setup training loop.
-        opt = torch.optim.Adam(model.parameters(), args.rate)
-
-        # Set regularisation high for the first epochs.
-        original_epsilon = B.epsilon
-        B.epsilon = config["epsilon_start"]
-
-        for i in range(start, args.epochs):
-            with out.Section(f"Epoch {i + 1}"):
-                # Set regularisation to normal after the first epoch.
-                if i > 0:
-                    B.epsilon = original_epsilon
-
-                # Checkpoint at regular intervals if specified
-                if args.checkpoint_every is not None and i % args.checkpoint_every == 0:
-                    out.out("Checkpointing...")
-                    torch.save(
-                        {
-                            "weights": model.state_dict(),
-                            "epoch": i + 1,
-                        },
-                        wd.file(f"model-epoch-{i+1}.torch"),
-                    )
-
-                # Perform an epoch.
-                if config["fix_noise"] and i < config["fix_noise_epochs"]:
-                    fix_noise = 1e-4
-                else:
-                    fix_noise = None
-                state, _ = train(
-                    state,
-                    model,
-                    opt,
-                    objective,
-                    gen_train,
-                    fix_noise=fix_noise,
-                    model_index=args.model_index
-                )
-
-                # The epoch is done. Now evaluate.
-                state, val = eval(state, model, objective_cv, gen_cv(), model_index=args.model_index)
-
-                # Save current model.
-                torch.save(
-                    {
-                        "weights": model.state_dict(),
-                        "objective": val,
-                        "epoch": i + 1,
-                    },
-                    wd.file(f"model-last.torch"),
-                )
-
-                # Check if the model is the new best. If so, save it.
-                if val > best_eval_lik:
-                    out.out("New best model!")
-                    best_eval_lik = val
-                    torch.save(
-                        {
-                            "weights": model.state_dict(),
-                            "objective": val,
-                            "epoch": i + 1,
-                        },
-                        wd.file(f"model-best.torch"),
-                    )
-
-                # Visualise a few predictions by the model.
-                gen = gen_cv()
-                gen.batch_size = 1
-                for j in range(5):
-                    exp.visualise_split(
-                        model,
-                        gen,
-                        path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
-                        config=config,
-                        model_index=args.model_index
-                    )
-
+        pred = model(
+            [
+                (
+                    xc, yc
+                ),
+                (
+                    xt, y1t
+                ),
+                (
+                    xt, y2t
+                ),
+            ],
+            xt
+        )
+        print(pred.mean)
 
 if __name__ == "__main__":
-    # main(data="noised_sawtooth", epochs=100, model_index=0)
-    # main(data="noised_sawtooth", epochs=100, model_index=1)
-    # main(data="noised_sawtooth", epochs=100, model_index=2)
-    # main(data="noised_sawtooth", epochs=100, model_index=0, evaluate=True)
-    # main(data="noised_sawtooth", epochs=100, model_index=1, evaluate=True)
-    # main(data="noised_sawtooth", epochs=100, model_index=2, evaluate=True)
-    main(data="noised_sawtooth", epochs=100, model_index=-1, evaluate=True)
+    main(data="noised_sawtooth", epochs=100, model_index=0, evaluate=True)
