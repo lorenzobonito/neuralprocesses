@@ -21,7 +21,6 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
     if config:
         try:
             plot_config = config["plot"][1]
-            plt.figure(figsize=(8, 6 * 3))
         except KeyError:
             return
     
@@ -33,7 +32,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
 
         logpdfs = None
         for i in range(num_samples):
-
+            
             # Generating predictions for y2t
             contexts = mask_contexts(batch["contexts"], 1, 2)
             state, mean, var, _, _ = nps.predict(state,
@@ -51,8 +50,11 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             y2t_pred = yt.squeeze(0).float()
 
             if config:
+                plt.figure(figsize=(8, 6 * 3))
                 plt.subplot(3, 1, 3)
                 plt.scatter(contexts[0][0], contexts[0][1], label="Context", style="train", s=20)
+                for c in range(1, 3):
+                    plt.scatter(contexts[c][0], contexts[c][1], label="Noised context", style="train", marker="^", s=20)
                 plt.scatter(batch["xt"][2][0], batch["yt"][2], label="Target", style="test", s=20)
                 err = 1.96 * B.sqrt(var[0, 0])
                 plt.plot(x, mean[0, 0], label="Prediction", style="pred")
@@ -65,7 +67,9 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 tweak()
 
             # Generating predictions for y1t
-            contexts = [(torch.cat((contexts[0][0], batch["xt"][2][0]), 2), torch.cat((contexts[0][1], y2t_pred), 2))]
+            
+            # TRIED TURNING OFF AND JUST USING OG CONTEXT IN LAYER 1 TOO (remember to add these back in below)
+            # contexts[2] = (batch["xt"][2][0], y2t_pred)
             state, mean, var, _, _ = nps.predict(state,
                                                   models[1],
                                                   contexts,
@@ -83,6 +87,8 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             if config:
                 plt.subplot(3, 1, 2)
                 plt.scatter(contexts[0][0], contexts[0][1], label="Context", style="train", s=20)
+                for c in range(1, 3):
+                    plt.scatter(contexts[c][0], contexts[c][1], label="Noised context", style="train", marker="^", s=20)
                 plt.scatter(batch["xt"][1][0], batch["yt"][1], label="Target", style="test", s=20)
                 err = 1.96 * B.sqrt(var[0, 0])
                 plt.plot(x, mean[0, 0], label="Prediction", style="pred")
@@ -95,12 +101,17 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 tweak()
 
             # Generating predictions for y0t
-            contexts = [(torch.cat((contexts[0][0], batch["xt"][1][0]), 2), torch.cat((contexts[0][1], y1t_pred), 2))]
+            contexts[1] = (batch["xt"][1][0], y1t_pred)
+
+            # Added to test layer 1 only OG context
+            contexts[2] = (batch["xt"][2][0], y2t_pred)
             state, pred = models[0](state, contexts, x)
 
             if config:
                 plt.subplot(3, 1, 1)
                 plt.scatter(contexts[0][0], contexts[0][1], label="Context", style="train", s=20)
+                for c in range(1, 3):
+                    plt.scatter(contexts[c][0], contexts[c][1], label="Noised context", style="train", marker="^", s=20)
                 plt.scatter(batch["xt"][0][0], batch["yt"][0], label="Target", style="test", s=20)
                 err = 1.96 * B.sqrt(pred.var[0, 0])
                 plt.plot(x, pred.mean[0, 0], label="Prediction", style="pred")
@@ -111,7 +122,8 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 plt.xlim(B.min(x), B.max(x))
                 tweak()
 
-            plt.savefig(path)
+                plt.savefig(path)
+                plt.close()
             
             if i == 0:
                 # Disable plot after first sample
@@ -120,18 +132,29 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             state, pred = models[0](state, contexts, batch["xt"][0][0])
 
             this_logpdfs = pred.logpdf(B.cast(float64, true_y0t))
+            # this_logpdfs = pred.logpdf(B.cast(float64, true_y0t).float())
+            # print(this_logpdfs)
+            # import sys
+            # sys.exit(1)
 
             if logpdfs is None:
                 logpdfs = this_logpdfs
             else:
                 logpdfs = B.concat(logpdfs, this_logpdfs, axis=0)
+        
+        # print(logpdfs)
 
         # Average over samples.
         logpdfs = B.logsumexp(logpdfs, axis=0) - B.log(num_samples)
+        # print(logpdfs)
 
         if normalise:
             # Normalise by the number of targets.
             logpdfs = logpdfs / B.cast(float64, nps.num_data(AggregateInput(batch["xt"][0]), Aggregate(batch["yt"][0])))
+        
+        # print(logpdfs)
+        # import sys
+        # sys.exit()
 
     return state, logpdfs
 

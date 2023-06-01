@@ -4,6 +4,7 @@ import sys
 import time
 import warnings
 from functools import partial
+import json
 
 import experiment as exp
 import lab as B
@@ -248,18 +249,7 @@ def main(**kw_args):
     # Setup script.
     if not observe:
         out.report_time = True
-    # wd = WorkingDirectory(
-    #     *args.root,
-    #     *(args.subdir or ()),
-    #     data_dir,
-    #     *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
-    #     args.model,
-    #     *((args.arch,) if hasattr(args, "arch") else ()),
-    #     args.objective,
-    #     log=f"log{suffix}.txt",
-    #     diff=f"diff{suffix}.txt",
-    #     observe=observe,
-    # )
+
     wd = WorkingDirectory(
         *args.root,
         data_dir,
@@ -345,11 +335,12 @@ def main(**kw_args):
     B.epsilon = config["epsilon"]
     B.cholesky_retry_factor = config["cholesky_retry_factor"]
 
+    # CONVCNP
     model = nps.construct_convgnp(
         points_per_unit=config["points_per_unit"],
-        dim_x=config["dim_x"],
-        dim_yc=(1,) * config["dim_y"],
-        dim_yt=config["dim_y"],
+        dim_x=1,
+        dim_yc=(1, 1, 1),
+        dim_yt=1,
         likelihood="het",
         conv_arch=args.arch,
         unet_channels=config["unet_channels"],
@@ -361,6 +352,25 @@ def main(**kw_args):
         encoder_scales=config["encoder_scales"],
         transform=config["transform"],
     )
+
+    # CONVGNP
+    # model = nps.construct_convgnp(
+    #     points_per_unit=config["points_per_unit"],
+    #     dim_x=1,
+    #     dim_yc=(1, 1, 1),
+    #     dim_yt=1,
+    #     likelihood="lowrank",
+    #     conv_arch=args.arch,
+    #     unet_channels=config["unet_channels"],
+    #     unet_strides=config["unet_strides"],
+    #     conv_channels=config["conv_channels"],
+    #     conv_layers=config["num_layers"],
+    #     conv_receptive_field=config["conv_receptive_field"],
+    #     num_basis_functions=config["num_basis_functions"],
+    #     margin=config["margin"],
+    #     encoder_scales=config["encoder_scales"],
+    #     transform=config["transform"],
+    # )
 
     # Settings specific for the model:
     if config["fix_noise"] is None:
@@ -424,11 +434,28 @@ def main(**kw_args):
 
     if args.evaluate:
 
+        # CONVCNP
         model_1 = nps.construct_convgnp(
             points_per_unit=config["points_per_unit"],
-            dim_x=config["dim_x"],
-            dim_yc=(1,) * config["dim_y"],
-            dim_yt=config["dim_y"],
+            dim_x=1,
+            dim_yc=(1, 1, 1),
+            dim_yt=1,
+            likelihood="het",
+            conv_arch=args.arch,
+            unet_channels=config["unet_channels"],
+            unet_strides=config["unet_strides"],
+            conv_channels=config["conv_channels"],
+            conv_layers=config["num_layers"],
+            conv_receptive_field=config["conv_receptive_field"],
+            margin=config["margin"],
+            encoder_scales=config["encoder_scales"],
+            transform=config["transform"],
+        )
+        model_2 = nps.construct_convgnp(
+            points_per_unit=config["points_per_unit"],
+            dim_x=1,
+            dim_yc=(1, 1, 1),
+            dim_yt=1,
             likelihood="het",
             conv_arch=args.arch,
             unet_channels=config["unet_channels"],
@@ -441,22 +468,41 @@ def main(**kw_args):
             transform=config["transform"],
         )
 
-        model_2 = nps.construct_convgnp(
-            points_per_unit=config["points_per_unit"],
-            dim_x=config["dim_x"],
-            dim_yc=(1,) * config["dim_y"],
-            dim_yt=config["dim_y"],
-            likelihood="het",
-            conv_arch=args.arch,
-            unet_channels=config["unet_channels"],
-            unet_strides=config["unet_strides"],
-            conv_channels=config["conv_channels"],
-            conv_layers=config["num_layers"],
-            conv_receptive_field=config["conv_receptive_field"],
-            margin=config["margin"],
-            encoder_scales=config["encoder_scales"],
-            transform=config["transform"],
-        )
+        # CONVGNP
+        # model_1 = nps.construct_convgnp(
+        #     points_per_unit=config["points_per_unit"],
+        #     dim_x=1,
+        #     dim_yc=(1, 1, 1),
+        #     dim_yt=1,
+        #     likelihood="lowrank",
+        #     conv_arch=args.arch,
+        #     unet_channels=config["unet_channels"],
+        #     unet_strides=config["unet_strides"],
+        #     conv_channels=config["conv_channels"],
+        #     conv_layers=config["num_layers"],
+        #     conv_receptive_field=config["conv_receptive_field"],
+        #     num_basis_functions=config["num_basis_functions"],
+        #     margin=config["margin"],
+        #     encoder_scales=config["encoder_scales"],
+        #     transform=config["transform"],
+        # )
+        # model_2 = nps.construct_convgnp(
+        #     points_per_unit=config["points_per_unit"],
+        #     dim_x=1,
+        #     dim_yc=(1, 1, 1),
+        #     dim_yt=1,
+        #     likelihood="lowrank",
+        #     conv_arch=args.arch,
+        #     unet_channels=config["unet_channels"],
+        #     unet_strides=config["unet_strides"],
+        #     conv_channels=config["conv_channels"],
+        #     conv_layers=config["num_layers"],
+        #     conv_receptive_field=config["conv_receptive_field"],
+        #     num_basis_functions=config["num_basis_functions"],
+        #     margin=config["margin"],
+        #     encoder_scales=config["encoder_scales"],
+        #     transform=config["transform"],
+        # )
 
         model_1 = model_1.to(device)
         model_2 = model_2.to(device)
@@ -471,8 +517,9 @@ def main(**kw_args):
         gen.batch_size = 1
 
         # Evaluate different context sets
-        num_datasets = 10
+        num_datasets = 100
         logliks = []
+        json_data = {}
         datasets = {
             "contexts": [],
             "xt": [],
@@ -480,12 +527,16 @@ def main(**kw_args):
         }
         for j in range(num_datasets):
             batch = gen.generate_batch()
-            print(f'{j}: {batch["contexts"][0][0].numel()}')
+            # print(f'{j}: {batch["contexts"][0][0].numel()}')
             datasets["contexts"].append(batch["contexts"][0])
             datasets["xt"].append(batch["xt"][0][0])
             datasets["yt"].append(batch["yt"][0])
             state, loglik = split_AR_prediction(state, models, batch, num_samples=1000, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
+            json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
+            with open("logliks_layer1_onlyOGcontext.json", "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=4)
+
         logliks = B.concat(*logliks)
         print(logliks)
         out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))

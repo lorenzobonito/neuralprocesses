@@ -368,8 +368,6 @@ def main(**kw_args):
 
     if args.evaluate:
 
-        model.load_state_dict(patch_model(torch.load(wd.file("model-best.torch"), map_location=device))["weights"])
-
         xc = B.randn(torch.float32, 1, 1, 20)
         yc = B.randn(torch.float32, 1, 1, 20)
         xt = B.randn(torch.float32, 1, 1, 20)
@@ -406,7 +404,7 @@ def main(**kw_args):
             points_per_unit=config["points_per_unit"],
             dim_x=config["dim_x"],
             dim_yc=(1, 1, 1),
-            dim_yt=1,
+            dim_yt=3,
             likelihood="het",
             conv_arch=args.arch,
             unet_channels=config["unet_channels"],
@@ -422,20 +420,11 @@ def main(**kw_args):
         model.load_state_dict(patch_model(torch.load(wd.file("model-best.torch"), map_location=device))["weights"])
         model.to(device)
 
-        pred = model(
-            [
-                (
-                    xc, yc
-                ),
-                (
-                    xt, y1t
-                ),
-                (
-                    xt, y2t
-                ),
-            ],
-            xt
-        )
+        context = [(xc, yc), (xt, y1t), (xt, y2t)]
+        context = mask_contexts(context, 1, 2)
+        print(context)
+
+        pred = model(context, xt)
         print(pred.mean)
 
 if __name__ == "__main__":

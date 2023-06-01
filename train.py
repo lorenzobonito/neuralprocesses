@@ -4,6 +4,7 @@ import sys
 import time
 import warnings
 from functools import partial
+import json
 
 import experiment as exp
 import lab as B
@@ -659,6 +660,8 @@ def main(**kw_args):
             datasets = pickle.load(f)
         
         logliks = []
+        json_data = {}
+        j = 0
         for context, xt, yt in zip(datasets["contexts"], datasets["xt"], datasets["yt"]):
             state, loglik = objective(
                 state,
@@ -669,19 +672,17 @@ def main(**kw_args):
                 fix_noise=False,
             )
             logliks.append(loglik)
+            json_data[j] = (loglik.item(), context[0][0].numel())
+            j += 1
 
         logliks = B.concat(*logliks)
         print(logliks)
         out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
-        #     state, loglik = generate_AR_prediction(state, model, batch, num_samples=100)
-        #     logliks.append(loglik)
-        # logliks = B.concat(*logliks)
-        # print(logliks)
-        # out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
 
-        # # Sleep for sixty seconds before exiting.
-        # out.out("Finished evaluation. Sleeping for a minute before exiting.")
-        # time.sleep(60)
+        with open("logliks_convgnp_100_epochs.json", "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=4)
+
+
     else:
         # Perform training. First, check if we want to resume training.
         start = 0
@@ -774,4 +775,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="sawtooth", epochs=100, evaluate=True)
+    main(data="sawtooth", epochs=100, model="convgnp", evaluate=True)
