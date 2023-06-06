@@ -646,4 +646,7 @@ if __name__ == "__main__":
     # main(data="noised_sawtooth", epochs=100, model_index=0, evaluate=True)
     # main(data="noised_sawtooth", epochs=100, model_index=1, evaluate=True)
     # main(data="noised_sawtooth", epochs=100, model_index=2, evaluate=True)
-    main(data="noised_sawtooth", epochs=100, model_index=-1, evaluate=True)
+    # main(data="noised_sawtooth", epochs=100, model_index=-1, evaluate=True)
+    # main(data="noised_sawtooth_diff_targ", epochs=100, model_index=0)
+    # main(data="noised_sawtooth_diff_targ", epochs=100, model_index=1)
+    main(data="noised_sawtooth_diff_targ", epochs=100, model_index=2)

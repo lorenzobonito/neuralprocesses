@@ -289,6 +289,46 @@ def new_batch(gen, dim_y, *, fix_x_across_batch=False, batch_size=None):
     return set_batch, xcs, xc, nc, xts, xt, nt
 
 
+def new_multi_batch(gen, dim_y, multiplicity, *, fix_x_across_batch=False, batch_size=None):
+    # Set the default for `batch_size`.
+    batch_size = batch_size or gen.batch_size
+
+    def _sample(dist_num, dist_x):
+        ns, xs = [], []
+        for _ in range(dim_y):
+            gen.state, n = dist_num.sample(gen.state, gen.int64)
+            if fix_x_across_batch:
+                # Set batch dimension to one and then tile.
+                gen.state, x = dist_x.sample(
+                    gen.state,
+                    gen.float64,
+                    1,
+                    n,
+                )
+                x = B.tile(x, batch_size, 1, 1)
+            else:
+                gen.state, x = dist_x.sample(
+                    gen.state,
+                    gen.float64,
+                    batch_size,
+                    n,
+                )
+            ns.append(n)
+            xs.append(x)
+        return xs, B.concat(*xs, axis=1), ns, sum(ns)
+
+    _t = B.transpose
+    _c = lambda x: B.cast(gen.dtype, x)
+
+    # For every output, sample the context and inputs.
+    _, xc, _, nc = _sample(gen.num_context, gen.dist_x_context)
+    multi_xt = []
+    for _ in range(multiplicity):
+        multi_xt.append(_sample(gen.num_target, gen.dist_x_target)[1])
+
+    return xc, nc, multi_xt
+
+
 def apply_task(state, dtype, int64, mode, xs, ys, num_target, forecast_start):
     """Construct one of three tasks from data.
 

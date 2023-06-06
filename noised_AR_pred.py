@@ -69,7 +69,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             # Generating predictions for y1t
             
             # TRIED TURNING OFF AND JUST USING OG CONTEXT IN LAYER 1 TOO (remember to add these back in below)
-            # contexts[2] = (batch["xt"][2][0], y2t_pred)
+            contexts[2] = (batch["xt"][2][0], y2t_pred)
             state, mean, var, _, _ = nps.predict(state,
                                                   models[1],
                                                   contexts,
@@ -104,7 +104,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             contexts[1] = (batch["xt"][1][0], y1t_pred)
 
             # Added to test layer 1 only OG context
-            contexts[2] = (batch["xt"][2][0], y2t_pred)
+            # contexts[2] = (batch["xt"][2][0], y2t_pred)
             state, pred = models[0](state, contexts, x)
 
             if config:

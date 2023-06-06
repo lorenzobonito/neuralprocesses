@@ -6,7 +6,7 @@ from neuralprocesses.aggregate import Aggregate, AggregateInput
 from .data import SyntheticGenerator, new_batch
 from ..dist import UniformContinuous
 
-__all__ = ["NoisedGenerator"]
+__all__ = ["NoisedSawtoothGenerator"]
 
 
 class NoisedSawtoothGenerator(SyntheticGenerator):
