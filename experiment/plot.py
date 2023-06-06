@@ -43,14 +43,11 @@ def visualise_split(model, gen, *, path, config, model_index, predict=nps.predic
     for i in range(config["dim_y"]):
         plt.subplot(config["dim_y"], 1, 1 + i)
 
-        plt.scatter(
-            batch["contexts"][0][0].squeeze(0),
-            batch["contexts"][0][1].squeeze(0),
-            label="Context",
-            style="train",
-            s=20,
-        )
-
+        plt.scatter(batch["contexts"][0][0].squeeze(0), batch["contexts"][0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
+        if batch["contexts"][1][0].squeeze(0).numel() != 0:
+            plt.scatter(batch["contexts"][1][0].squeeze(0), batch["contexts"][1][1].squeeze(0), label="Auxiliary Context 1", style="train", marker="^", c="tab:red", s=10)
+        if batch["contexts"][2][0].squeeze(0).numel() != 0:
+            plt.scatter(batch["contexts"][2][0].squeeze(0), batch["contexts"][2][1].squeeze(0), label="Auxiliary Context 2", style="train", marker="^", c="tab:green", s=10)
 
         plt.scatter(
             batch["xt"],

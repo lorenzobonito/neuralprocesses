@@ -31,16 +31,10 @@ def plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], fi
 if __name__ == "__main__":
 
     levels = [0, 1, 2]
-    
-    fpaths = [
-        "_experiments/noised_sawtooth_diff_targ/convcnp/0/log_train.txt",
-        "_experiments/noised_sawtooth_diff_targ/convcnp/1/log_train.txt",
-        "_experiments/noised_sawtooth_diff_targ/convcnp/2/log_train.txt"
-    ]
 
     for level in levels:
 
-        fpath = f"_experiments/noised_sawtooth_diff_targ/convcnp/{level}/log_train.txt"
+        fpath = f"_experiments/noised_sawtooth_diff_targ/convcnp_100/{level}/log_train.txt"
 
         with open(fpath, "r") as f:
             lines = f.readlines()
@@ -56,4 +50,4 @@ if __name__ == "__main__":
             if "Loglik (V):" in line:
                 val_losses.append(float(line.split()[4]))
 
-        plot_train_val_curves(train_losses, val_losses, f"train_val_curves_{level}")
+        plot_train_val_curves(train_losses, val_losses, f"train_val_curves_{level}_100_epochs")
