@@ -29,26 +29,31 @@ def plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], fi
 
 
 if __name__ == "__main__":
+
+    levels = [0, 1, 2]
     
-    fpath = "_experiments/noised_sawtooth/convcnp_500_epochs/0/log_train.txt"
+    fpaths = [
+        "_experiments/noised_sawtooth_diff_targ/convcnp/0/log_train.txt",
+        "_experiments/noised_sawtooth_diff_targ/convcnp/1/log_train.txt",
+        "_experiments/noised_sawtooth_diff_targ/convcnp/2/log_train.txt"
+    ]
 
-    with open(fpath, "r") as f:
-        lines = f.readlines()
+    for level in levels:
 
-    train_losses = {0: [], 1: [], 2: []}
-    val_losses = {0: [], 1: [], 2: []}
-    
-    for line in lines:
+        fpath = f"_experiments/noised_sawtooth_diff_targ/convcnp/{level}/log_train.txt"
 
-        if "model_index:" in line:
-            model_index = int(line.split()[2])
+        with open(fpath, "r") as f:
+            lines = f.readlines()
 
-        if "Loglik (T):" in line:
-            train_losses[model_index].append(float(line.split()[4]))
+        train_losses = []
+        val_losses = []
+        
+        for line in lines:
 
-        if "Loglik (V):" in line:
-            val_losses[model_index].append(float(line.split()[4]))
+            if "Loglik (T):" in line:
+                train_losses.append(float(line.split()[4]))
 
-    for i in range(len(train_losses)):
+            if "Loglik (V):" in line:
+                val_losses.append(float(line.split()[4]))
 
-        plot_train_val_curves(train_losses[i], val_losses[i], f"train_val_curves_{i}")
+        plot_train_val_curves(train_losses, val_losses, f"train_val_curves_{level}")
