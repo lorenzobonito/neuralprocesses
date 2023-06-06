@@ -11,10 +11,10 @@ def compare(logliks: Tuple[dict, dict]):
     
     for d in range(num_datasets):
         if logliks[0][str(d)][0] < logliks[1][str(d)][0]:
-            print(logliks[0][str(d)], logliks[1][str(d)])
+            # print(logliks[0][str(d)], logliks[1][str(d)])
             counter -= 1
     
-    return counter / num_datasets * 100
+    return np.round(counter / num_datasets * 100, 2)
 
 
 def plot_hist_comparison(logliks: List[dict], labels: List[str], filename: str):
@@ -81,8 +81,15 @@ if __name__ == "__main__":
     with open("logliks_layer1_onlyOGcontext_1000_samples.json", "r") as f:
         layer1_OGcontext_1000_samples = json.load(f)
 
-    # print(compare((regular_1000_samples, convcnp)))
     plot_hist_comparison([convcnp, regular_100_samples, regular_1000_samples], ["Baseline", "Noised (100)", "Noised (1000)"], "loglik_comparison_regular")
     plot_hist_comparison([convcnp, layer1_OGcontext_100_samples, layer1_OGcontext_1000_samples], ["Baseline", "Noised (100)", "Noised (1000)"], "loglik_comparison_level1_OGcont")
-    plot_hist_comparison([regular_100_samples, layer1_OGcontext_100_samples], ["Regular", "Layer 1 OG context"], "loglik_comparison_noised_100")
-    plot_hist_comparison([regular_1000_samples, layer1_OGcontext_1000_samples], ["Regular", "Layer 1 OG context"], "loglik_comparison_noised_1000")
+    plot_hist_comparison([convcnp, regular_100_samples, layer1_OGcontext_100_samples], ["Baseline", "Regular", "Layer 1 OG context"], "loglik_comparison_noised_100")
+    plot_hist_comparison([convcnp, regular_1000_samples, layer1_OGcontext_1000_samples], ["Baseline", "Regular", "Layer 1 OG context"], "loglik_comparison_noised_1000")
+
+    # Printing percentage of datasets in which model 1 performs better than model 2
+    print(compare((regular_100_samples, convcnp)))
+    print(compare((layer1_OGcontext_100_samples, convcnp)))
+    print(compare((regular_1000_samples, convcnp)))
+    print(compare((layer1_OGcontext_1000_samples, convcnp)))
+    print(compare((regular_100_samples, layer1_OGcontext_100_samples)))
+    print(compare((regular_1000_samples, layer1_OGcontext_1000_samples)))

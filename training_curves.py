@@ -20,7 +20,7 @@ def plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], fi
     plt.plot(epochs, val_loglik, label="Validation", linewidth=2)
     plt.plot(epochs, train_loglik, label="Training", linewidth=2)
 
-    plt.legend(loc="upper right", fontsize=16)
+    plt.legend(loc="lower right", fontsize=16)
     
     plt.grid()
     plt.tight_layout()
@@ -30,7 +30,7 @@ def plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], fi
 
 if __name__ == "__main__":
     
-    fpath = "_experiments/noised_sawtooth/convcnp/0/log_train.txt"
+    fpath = "_experiments/noised_sawtooth/convcnp_500_epochs/0/log_train.txt"
 
     with open(fpath, "r") as f:
         lines = f.readlines()
