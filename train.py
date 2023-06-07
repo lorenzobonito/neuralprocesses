@@ -679,7 +679,7 @@ def main(**kw_args):
         print(logliks)
         out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
 
-        with open("logliks_convgnp_100_epochs.json", "w", encoding="utf-8") as f:
+        with open("logliks_convcnp.json", "w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=4)
 
 
@@ -775,4 +775,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="sawtooth", epochs=100, model="convgnp", evaluate=True)
+    main(data="sawtooth", epochs=100, model="convcnp", evaluate=True)

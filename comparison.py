@@ -10,11 +10,48 @@ def compare(logliks: Tuple[dict, dict]):
     counter = len(logliks[0])
     
     for d in range(num_datasets):
-        if logliks[0][str(d)][0] < logliks[1][str(d)][0]:
+        if np.exp(logliks[0][str(d)][0]) < np.exp(logliks[1][str(d)][0]):
             # print(logliks[0][str(d)], logliks[1][str(d)])
             counter -= 1
     
     return np.round(counter / num_datasets * 100, 2)
+
+
+def _check_consistency(logliks: List[dict]):
+
+    num_models = len(logliks)
+    num_datasets = len(logliks[0])
+
+    # Check that all models have the same number of datasets
+    for m in range(1, num_models):
+        assert num_datasets == len(logliks[m])
+
+    # Check that corresponding datasets within each model have the same
+    # number of context points
+    for d in range(num_datasets):
+        context_size = logliks[0][str(d)][1]
+        for m in range(1, num_models):
+            assert context_size == logliks[m][str(d)][1]
+    
+    return num_models, num_datasets
+
+
+def process_data(logliks: List[dict]):
+
+    num_models, num_datasets = _check_consistency(logliks)
+    
+    datasets = {}
+    for d in range(num_datasets):
+        for m in range(0, num_models):
+            if m == 0:
+                datasets[d] = [logliks[m][str(d)][1], np.exp(logliks[m][str(d)][0])]
+            else:
+                datasets[d].append(np.exp(logliks[m][str(d)][0]))
+
+    # Sorting by context size (and by loglik of first model)
+    datasets = dict(sorted(datasets.items(), key=lambda item: (item[1][0], item[1][1])))
+
+    return datasets
 
 
 def plot_hist_comparison(logliks: List[dict], labels: List[str], filename: str):
@@ -22,14 +59,10 @@ def plot_hist_comparison(logliks: List[dict], labels: List[str], filename: str):
     assert len(logliks) == len(labels)
 
     num_models = len(logliks)
-    pos = np.arange(1, len(logliks[0]) + 1, 1)
-
-    data = []
-    num_context_points = [loglik[1] for loglik in logliks[0].values()]
-    for m in range(num_models):
-        data.append(np.exp([loglik[0] for loglik in logliks[m].values()]))
-
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][:num_models]
+    num_context_points = []
+    data = process_data(logliks)
+    pos = np.arange(0, len(data), 1)
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][:]
 
     plt.figure(figsize=(16,8))
     plt.xticks(fontsize=14)
@@ -38,13 +71,14 @@ def plot_hist_comparison(logliks: List[dict], labels: List[str], filename: str):
     plt.ylabel("Likelihood", fontsize=20, labelpad=20)
 
     bars = []
-    for x, *values in zip(pos, *data):
-        for i, (h, c, l) in enumerate(sorted(zip(values, colors, range(len(labels))))):                
+    for x, values in zip(pos, data.values()):
+        num_context_points.append(values[0])
+        for i, (h, c, l) in enumerate(sorted(zip(values[1:], colors, range(len(labels))))):
             bar = plt.bar(x, h, color=c, zorder=5-i, label=labels[l])
             if i == num_models - 1:
                 bars.append(bar)
 
-    # Adding legend    
+    # Adding legend
     ax = plt.gca()
     h, l = ax.get_legend_handles_labels()
     hprime = []
@@ -69,27 +103,13 @@ if __name__ == "__main__":
     with open("logliks_convcnp.json", "r") as f:
         convcnp = json.load(f)
     
-    with open("logliks_noised_convcnp_100_samples.json", "r") as f:
-        regular_100_samples = json.load(f)  
-    
-    with open("logliks_noised_convcnp_1000_samples.json", "r") as f:
-        regular_1000_samples = json.load(f)
+    with open("logliks_new_100_samples.json", "r") as f:
+        new_100_samples = json.load(f)
 
-    with open("logliks_layer1_onlyOGcontext_100_samples.json", "r") as f:
-        layer1_OGcontext_100_samples = json.load(f)  
-    
-    with open("logliks_layer1_onlyOGcontext_1000_samples.json", "r") as f:
-        layer1_OGcontext_1000_samples = json.load(f)
+    with open("logliks_new_1000_samples.json", "r") as f:
+        new_1000_samples = json.load(f)
 
-    plot_hist_comparison([convcnp, regular_100_samples, regular_1000_samples], ["Baseline", "Noised (100)", "Noised (1000)"], "loglik_comparison_regular")
-    plot_hist_comparison([convcnp, layer1_OGcontext_100_samples, layer1_OGcontext_1000_samples], ["Baseline", "Noised (100)", "Noised (1000)"], "loglik_comparison_level1_OGcont")
-    plot_hist_comparison([convcnp, regular_100_samples, layer1_OGcontext_100_samples], ["Baseline", "Regular", "Layer 1 OG context"], "loglik_comparison_noised_100")
-    plot_hist_comparison([convcnp, regular_1000_samples, layer1_OGcontext_1000_samples], ["Baseline", "Regular", "Layer 1 OG context"], "loglik_comparison_noised_1000")
-
-    # Printing percentage of datasets in which model 1 performs better than model 2
-    print(compare((regular_100_samples, convcnp)))
-    print(compare((layer1_OGcontext_100_samples, convcnp)))
-    print(compare((regular_1000_samples, convcnp)))
-    print(compare((layer1_OGcontext_1000_samples, convcnp)))
-    print(compare((regular_100_samples, layer1_OGcontext_100_samples)))
-    print(compare((regular_1000_samples, layer1_OGcontext_1000_samples)))
+    plot_hist_comparison([convcnp, new_100_samples, new_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison")
+    print(compare((new_100_samples, convcnp)))
+    print(compare((new_1000_samples, convcnp)))
+    print(compare((new_1000_samples, new_100_samples)))

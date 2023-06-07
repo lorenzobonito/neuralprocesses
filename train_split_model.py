@@ -531,10 +531,10 @@ def main(**kw_args):
             datasets["contexts"].append(batch["contexts"][0])
             datasets["xt"].append(batch["xt"][0][0])
             datasets["yt"].append(batch["yt"][0])
-            state, loglik = split_AR_prediction(state, models, batch, num_samples=100, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+            state, loglik = split_AR_prediction(state, models, batch, num_samples=1000, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
-            with open("logliks_layer1_onlyOGcontext.json", "w", encoding="utf-8") as f:
+            with open("logliks_new_1000_samples.json", "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
 
         logliks = B.concat(*logliks)
@@ -649,5 +649,5 @@ if __name__ == "__main__":
     # main(data="noised_sawtooth", epochs=100, model_index=-1, evaluate=True)
     # main(data="noised_sawtooth_diff_targ", epochs=500, model_index=0)
     # main(data="noised_sawtooth_diff_targ", epochs=500, model_index=1)
-    main(data="noised_sawtooth_diff_targ", epochs=500, model_index=2)
-    # main(data="noised_sawtooth_diff_targ", epochs=100, model_index=-1, evaluate=True)
+    # main(data="noised_sawtooth_diff_targ", epochs=500, model_index=2)
+    main(data="noised_sawtooth_diff_targ", epochs=100, model_index=-1, evaluate=True)
