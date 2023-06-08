@@ -116,26 +116,11 @@ def visualise_noised_1d(model, gen, *, path, config, predict=nps.predict):
     for i in range(config["dim_y"]):
         plt.subplot(config["dim_y"], 1, 1 + i)
 
+        plt.scatter(batch["contexts"][0][0].squeeze(0), batch["contexts"][0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
         if i == 0:
-            xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][1][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
-            ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][1][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
-        elif i == 1:
-            xcontexts = torch.cat((batch["contexts"][0][0].squeeze(0), batch["contexts"][2][0].squeeze(0)), 1)
-            ycontexts = torch.cat((batch["contexts"][0][1].squeeze(0), batch["contexts"][2][1].squeeze(0)), 1)
-        elif i == 2:
-            xcontexts = batch["contexts"][0][0].squeeze(0)
-            ycontexts = batch["contexts"][0][1].squeeze(0)
-        else:
-            raise RuntimeError("Index error")
-
-        # Plot context and target.
-        plt.scatter(
-            xcontexts,
-            ycontexts,
-            label="Context",
-            style="train",
-            s=20,
-        )
+            plt.scatter(batch["contexts"][1][0].squeeze(0), batch["contexts"][1][1].squeeze(0), label="Auxiliary Context 1", style="train", marker="^", c="tab:red", s=10)
+        if i in [0, 1]:
+            plt.scatter(batch["contexts"][2][0].squeeze(0), batch["contexts"][2][1].squeeze(0), label="Auxiliary Context 2", style="train", marker="^", c="tab:green", s=10)
 
         plt.scatter(
             batch["xt"][i][0],

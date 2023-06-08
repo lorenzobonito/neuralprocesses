@@ -23,9 +23,15 @@ warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 def train(state, model, opt, objective, gen, *, fix_noise):
     """Train for an epoch."""
-    vals = []
+
+    # Preliminary setup
+    levels = (0, 1, 2)
+    vals = {}
+    for level in levels:
+        vals[level] = []
+    
     for batch in gen.epoch():
-        level_index = np.random.choice((0, 1, 2))
+        level_index = np.random.choice(levels)
         state, obj = objective(
             state,
             model,
@@ -35,23 +41,30 @@ def train(state, model, opt, objective, gen, *, fix_noise):
             level_index,
             fix_noise=fix_noise,
         )
-        vals.append(B.to_numpy(obj))
+        vals[level_index].append(B.to_numpy(obj))
         # Be sure to negate the output of `objective`.
         val = -B.mean(obj)
         opt.zero_grad(set_to_none=True)
         val.backward()
         opt.step()
 
-    vals = B.concat(*vals)
-    out.kv("Loglik (T)", exp.with_err(vals, and_lower=True))
+    vals = dict((k, B.concat(*v)) for k, v in vals.items())
+    for level in levels:
+        out.kv(f"Loglik (T, {level})", exp.with_err(vals[level], and_lower=True))
+    vals = B.concat(*vals.values())
     return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
 
 
 def eval(state, model, objective, gen):
     """Perform evaluation."""
     with torch.no_grad():
-        # vals, kls, kls_diag = [], [], []
-        vals = []
+
+        # Preliminary setup
+        levels = (0, 1, 2)
+        vals = {}
+        for level in levels:
+            vals[level] = []
+        
         for batch in gen.epoch():
             level_index = np.random.choice((0, 1, 2))
             state, obj = objective(
@@ -65,15 +78,17 @@ def eval(state, model, objective, gen):
 
             # Save numbers.
             # n = nps.num_data(batch["xt"], batch["yt"])
-            vals.append(B.to_numpy(obj))
+            vals[level_index].append(B.to_numpy(obj))
             # if "pred_logpdf" in batch:
             #     kls.append(B.to_numpy(batch["pred_logpdf"] / n - obj))
             # if "pred_logpdf_diag" in batch:
             #     kls_diag.append(B.to_numpy(batch["pred_logpdf_diag"] / n - obj))
 
         # Report numbers.
-        vals = B.concat(*vals)
-        out.kv("Loglik (V)", exp.with_err(vals, and_lower=True))
+        vals = dict((k, B.concat(*v)) for k, v in vals.items())
+        for level in levels:
+            out.kv(f"Loglik (V, {level})", exp.with_err(vals[level], and_lower=True))
+        vals = B.concat(*vals.values())
         # if kls:
         #     out.kv("KL (full)", exp.with_err(B.concat(*kls), and_upper=True))
         # if kls_diag:
@@ -229,6 +244,7 @@ def main(**kw_args):
         "convcnp",
         *((args.arch,) if hasattr(args, "arch") else ()),
         args.objective,
+        str(args.epochs),
         log=f"log{suffix}.txt",
         diff=f"diff{suffix}.txt",
         observe=observe,
@@ -421,17 +437,33 @@ def main(**kw_args):
         model.load_state_dict(
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
+
+        num_samples = 100
+        wd = WorkingDirectory(
+            *args.root,
+            *(args.subdir or ()),
+            data_dir,
+            *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
+            "convcnp",
+            *((args.arch,) if hasattr(args, "arch") else ()),
+            args.objective,
+            str(args.epochs),
+            f"eval_{num_samples}",
+            log=f"log{suffix}.txt",
+            diff=f"diff{suffix}.txt",
+            observe=observe,
+        )
         
-        if not args.ar or args.also_ar:
-            # Make some plots.
-            gen = gen_cv()
-            for i in range(args.evaluate_num_plots):
-                exp.visualise_noised_1d(
-                    model,
-                    gen,
-                    path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
-                    config=config,
-                )
+        # if not args.ar or args.also_ar:
+        #     # Make some plots.
+        #     gen = gen_cv()
+        #     for i in range(args.evaluate_num_plots):
+        #         exp.visualise_noised_1d(
+        #             model,
+        #             gen,
+        #             path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
+        #             config=config,
+        #         )
 
         #     # For every objective and evaluation generator, do the evaluation.
         #     for objecive_name, objective_eval in objectives_eval:
@@ -467,35 +499,65 @@ def main(**kw_args):
         #                     gen,
         #                 )
 
-        gen.batch_size = 1
+        # gen.batch_size = 1
 
         # Evaluate different context sets
-        num_datasets = 10
+        # num_datasets = 10
+        # logliks = []
+        # datasets = {
+        #     "contexts": [],
+        #     "xt": [],
+        #     "yt": []
+        # }
+
+        # import pickle
+        # import json
+        # with open("datasets.pickle", "rb") as f:
+        #     datasets = pickle.load(f)
+
+        # json_data = {}
+
+        # for j, (context, xt, yt) in enumerate(zip([datasets["contexts"]], datasets["xt"], datasets["yt"])):
+        #     context.append((B.randn(torch.float32, args.batch_size, 1, 0), B.randn(torch.float32, args.batch_size, 1, 0)))
+        #     context.append((B.randn(torch.float32, args.batch_size, 1, 0), B.randn(torch.float32, args.batch_size, 1, 0)))
+        #     batch = {"contexts": context, "xt": xt, "yt": yt}
+        #     state, loglik = generate_AR_prediction(state, model, batch, num_samples=100, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+        #     logliks.append(loglik)
+        #     json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
+        # logliks = B.concat(*logliks)
+        # print(logliks)
+        # out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
+
+
+        # with open(wd.file("logliks.json"), "w", encoding="utf-8") as f:
+        #     json.dump(json_data, f, ensure_ascii=False, indent=4)
+
+        # Evaluate different context sets
+        import json
+        gen = gen_cv()
+        gen.batch_size = 1
+        num_datasets = 100
         logliks = []
-        datasets = {
-            "contexts": [],
-            "xt": [],
-            "yt": []
-        }
+        json_data = {}
+        datasets = []
         for j in range(num_datasets):
             batch = gen.generate_batch()
-            datasets["contexts"].append(batch["contexts"][0])
-            datasets["xt"].append(batch["xt"][0][0])
-            datasets["yt"].append(batch["yt"][0])
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=50, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+            datasets.append(batch)
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=num_samples, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
+            json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
+            with open(wd.file("logliks.json"), "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=4)
+
         logliks = B.concat(*logliks)
         print(logliks)
         out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
 
-        # print(datasets)
         # import pickle
-        # with open("datasets.pickle", "wb") as f:
+        # with open("datasets_joint.pickle", "wb") as f:
         #     pickle.dump(datasets, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-        # # Sleep for ten seconds before exiting.
-        # out.out("Finished evaluation. Sleeping for ten seconds before exiting.")
-        # time.sleep(10)
+
     else:
         # Perform training. First, check if we want to resume training.
         start = 0
@@ -588,5 +650,5 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)
-    # main(data="noised_sawtooth", dim_y=3, epochs=100, objective="loglik", evaluate=True)
+    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500, objective="sl_loglik", evaluate=True)
+    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=100, objective="sl_loglik", evaluate=True)

@@ -656,23 +656,23 @@ def main(**kw_args):
         # Evaluate different context sets
         
         import pickle
-        with open("datasets.pickle","rb") as f:
+        with open("datasets_joint.pickle","rb") as f:
             datasets = pickle.load(f)
         
         logliks = []
         json_data = {}
         j = 0
-        for context, xt, yt in zip(datasets["contexts"], datasets["xt"], datasets["yt"]):
+        for batch in datasets:
             state, loglik = objective(
                 state,
                 model,
-                [context],
-                xt,
-                yt,
+                [batch["contexts"][0]],
+                batch["xt"][0][0],
+                batch["yt"][0],
                 fix_noise=False,
             )
             logliks.append(loglik)
-            json_data[j] = (loglik.item(), context[0][0].numel())
+            json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
             j += 1
 
         logliks = B.concat(*logliks)

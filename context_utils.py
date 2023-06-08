@@ -12,11 +12,6 @@ def mask_contexts(context, batch_size, level_index):
     elif level_index == 1:
         # # If 1, y1t is masked, and only y2t and yc are passed as context
         context[1] = (B.randn(torch.float32, batch_size, 1, 0), B.randn(torch.float32, batch_size, 1, 0))
-
-        # TRY MASKING EVERYTHING BUT OG CONTEXT
-        # context[1] = (B.randn(torch.float32, batch_size, 1, 0), B.randn(torch.float32, batch_size, 1, 0))
-        # context[2] = (B.randn(torch.float32, batch_size, 1, 0), B.randn(torch.float32, batch_size, 1, 0))
-
         return context
     elif level_index == 2:
         # If 2, y1t and y2t are masked, and only yc is passed as context

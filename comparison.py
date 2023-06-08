@@ -104,12 +104,29 @@ if __name__ == "__main__":
         convcnp = json.load(f)
     
     with open("logliks_new_100_samples.json", "r") as f:
-        new_100_samples = json.load(f)
+        new_split_100_samples = json.load(f)
 
     with open("logliks_new_1000_samples.json", "r") as f:
-        new_1000_samples = json.load(f)
+        new_split_1000_samples = json.load(f)
 
-    plot_hist_comparison([convcnp, new_100_samples, new_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison")
-    print(compare((new_100_samples, convcnp)))
-    print(compare((new_1000_samples, convcnp)))
-    print(compare((new_1000_samples, new_100_samples)))
+    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_100/logliks.json", "r") as f:
+        new_joint_100_samples = json.load(f)
+
+    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_1000/logliks.json", "r") as f:
+        new_joint_1000_samples = json.load(f)
+
+    # plot_hist_comparison([convcnp, new_split_100_samples, new_split_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison_new_split")
+    # print(compare((new_split_100_samples, convcnp)))
+    # print(compare((new_split_1000_samples, convcnp)))
+    # print(compare((new_split_1000_samples, new_split_100_samples)))
+
+    # plot_hist_comparison([convcnp, new_joint_100_samples, new_joint_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison_new_joint")
+    # print(compare((new_joint_100_samples, convcnp)))
+    # print(compare((new_joint_1000_samples, convcnp)))
+    # print(compare((new_joint_1000_samples, new_joint_100_samples)))
+
+    # plot_hist_comparison([new_split_100_samples, new_joint_100_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_100")
+    # print(compare((new_split_100_samples, new_joint_100_samples)))
+
+    # plot_hist_comparison([new_split_1000_samples, new_joint_1000_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_1000")
+    # print(compare((new_split_1000_samples, new_joint_1000_samples)))
