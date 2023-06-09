@@ -30,24 +30,28 @@ def plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], fi
 
 if __name__ == "__main__":
 
-    levels = [0, 1, 2]
+    levels = (0, 1, 2)
+    train_losses = {}
+    val_losses = {}
 
     for level in levels:
+        train_losses[level] = []
+        val_losses[level] = []
 
-        fpath = f"_experiments/noised_sawtooth_diff_targ/convcnp_100/{level}/log_train.txt"
+    fpath = "_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/log_train.txt"
 
-        with open(fpath, "r") as f:
-            lines = f.readlines()
+    with open(fpath, "r") as f:
+        lines = f.readlines()
 
-        train_losses = []
-        val_losses = []
-        
+    for level in levels:
         for line in lines:
+            # print(line.split())
 
-            if "Loglik (T):" in line:
-                train_losses.append(float(line.split()[4]))
+            if f"Loglik (T, {level}):" in line:
+                train_losses[level].append(float(line.split()[5]) if level == 0 else float(line.split()[4]))
 
-            if "Loglik (V):" in line:
-                val_losses.append(float(line.split()[4]))
+            if f"Loglik (V, {level}):" in line:
+                val_losses[level].append(float(line.split()[5]) if level == 0 else float(line.split()[4]))
 
-        plot_train_val_curves(train_losses, val_losses, f"train_val_curves_{level}_100_epochs")
+    for level in levels:
+        plot_train_val_curves(train_losses[level], val_losses[level], f"train_val_curves_new_joint_{level}_500_epochs")
