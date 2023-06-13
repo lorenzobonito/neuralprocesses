@@ -67,8 +67,8 @@ def plot_hist_comparison(logliks: List[dict], labels: List[str], filename: str):
     plt.figure(figsize=(16,8))
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.xlabel("Dataset index", fontsize=20, labelpad=20)
-    plt.ylabel("Likelihood", fontsize=20, labelpad=20)
+    plt.xlabel("Dataset index", fontsize=20, labelpad=10)
+    plt.ylabel("Likelihood", fontsize=20, labelpad=10)
 
     bars = []
     for x, values in zip(pos, data.values()):
@@ -87,12 +87,27 @@ def plot_hist_comparison(logliks: List[dict], labels: List[str], filename: str):
         idx = l.index(labels[m])
         hprime.append(h[idx])
         lprime.append(l[idx])
-    ax.legend(hprime, lprime)
+    # ax.legend(hprime, lprime)
+    leg = ax.legend(hprime, lprime, facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="upper left", labelspacing=0.25, fontsize=14)
+    leg.get_frame().set_linewidth(0)
 
     for bar, cont in zip(bars, num_context_points):
-        ax.bar_label(bar, labels=[cont], fontsize=6, fontweight="bold")
+        ax.bar_label(bar, labels=[cont], fontsize=8, fontweight="bold")
 
-    plt.grid()
+    plt.xlim([-1, 100])
+
+    # For poster consistency:
+    ax.set_axisbelow(True)  # Show grid lines below other elements.
+    ax.grid(which="major", c="#c0c0c0", alpha=0.5, lw=1)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_lw(1)
+    ax.spines["left"].set_lw(1)
+    ax.xaxis.set_ticks_position("bottom")
+    ax.xaxis.set_tick_params(width=1)
+    ax.yaxis.set_ticks_position("left")
+    ax.yaxis.set_tick_params(width=1)
+
     plt.tight_layout()
     plt.savefig(f"images/{filename}.png", dpi=600)
     plt.close()
@@ -115,10 +130,10 @@ if __name__ == "__main__":
     with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_1000/logliks.json", "r") as f:
         new_joint_1000_samples = json.load(f)
 
-    # plot_hist_comparison([convcnp, new_split_100_samples, new_split_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison_new_split")
-    # print(compare((new_split_100_samples, convcnp)))
-    # print(compare((new_split_1000_samples, convcnp)))
-    # print(compare((new_split_1000_samples, new_split_100_samples)))
+    plot_hist_comparison([convcnp, new_split_100_samples, new_split_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "new_loglik_comparison_new_split")
+    print(compare((new_split_100_samples, convcnp)))
+    print(compare((new_split_1000_samples, convcnp)))
+    print(compare((new_split_1000_samples, new_split_100_samples)))
 
     # plot_hist_comparison([convcnp, new_joint_100_samples, new_joint_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison_new_joint")
     # print(compare((new_joint_100_samples, convcnp)))
