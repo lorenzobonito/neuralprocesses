@@ -38,7 +38,7 @@ def train(state, model, opt, objective, gen, *, fix_noise):
             mask_contexts(batch["contexts"], gen.batch_size, level_index),
             batch["xt"],
             batch["yt"],
-            # level_index,
+            level_index,
             fix_noise=fix_noise,
         )
         vals[level_index].append(B.to_numpy(obj))
@@ -73,7 +73,7 @@ def eval(state, model, objective, gen):
                 mask_contexts(batch["contexts"], gen.batch_size, level_index),
                 batch["xt"],
                 batch["yt"],
-                # level_index,
+                level_index,
             )
 
             # Save numbers.
@@ -438,7 +438,7 @@ def main(**kw_args):
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
 
-        num_samples = 100
+        num_samples = 1000
         wd = WorkingDirectory(
             *args.root,
             *(args.subdir or ()),
@@ -650,5 +650,5 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500, objective="sl_loglik", evaluate=True)
-    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True)
+    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10, objective="sl_loglik")
+    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True)

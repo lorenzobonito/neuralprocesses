@@ -76,7 +76,6 @@ def plot_hist_comparison_by_context(logliks: List[dict], labels: List[str], file
     data = _process_data(logliks)
     pos = np.arange(0, len(data))
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:]
-    # colors = ["tab:blue", "tab:green", "tab:red"]
     width = 0.85/num_models
 
     plt.figure(figsize=(16,8))

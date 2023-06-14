@@ -266,7 +266,6 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True, pat
                 err = 1.96 * B.sqrt(var[0][0, 0])
                 plt.plot(x[0][0], mean[0][0, 0], label="Prediction", style="pred")
                 plt.fill_between(x[0][0], mean[0][0, 0] - err, mean[0][0, 0] + err, style="pred")
-                plt.scatter(batch["xt"][0][0], y1t_pred, marker="s", c="black", s=10, label="Prediction sample")
 
                 for x_axvline in plot_config["axvline"]:
                     plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
