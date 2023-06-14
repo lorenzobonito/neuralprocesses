@@ -112,15 +112,16 @@ def visualise_noised_1d(model, gen, *, path, config, predict=nps.predict):
         )
 
     plt.figure(figsize=(8, 6 * config["dim_y"]))
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
 
     for i in range(config["dim_y"]):
-        plt.subplot(config["dim_y"], 1, 1 + i)
 
+        plt.subplot(config["dim_y"], 1, 1 + i)
         plt.scatter(batch["contexts"][0][0].squeeze(0), batch["contexts"][0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
-        if i == 0:
-            plt.scatter(batch["contexts"][1][0].squeeze(0), batch["contexts"][1][1].squeeze(0), label="Auxiliary Context 1", style="train", marker="^", c="tab:red", s=10)
-        if i in [0, 1]:
-            plt.scatter(batch["contexts"][2][0].squeeze(0), batch["contexts"][2][1].squeeze(0), label="Auxiliary Context 2", style="train", marker="^", c="tab:green", s=10)
+        
+        for j in range(config["dim_y"]):
+            if j>i:
+                plt.scatter(batch["contexts"][j][0].squeeze(0), batch["contexts"][j][1].squeeze(0), label=f"Auxiliary Context {j}", style="train", marker="^", c=colors[j-1], s=10)
 
         plt.scatter(
             batch["xt"][i][0],
@@ -144,13 +145,13 @@ def visualise_noised_1d(model, gen, *, path, config, predict=nps.predict):
             mean[i][0, 0] + err,
             style="pred",
         )
-        plt.plot(
-            x,
-            B.transpose(samples[i][:10, 0, 0]),
-            style="pred",
-            ls="-",
-            lw=0.5,
-        )
+        # plt.plot(
+        #     x,
+        #     B.transpose(samples[i][:10, 0, 0]),
+        #     style="pred",
+        #     ls="-",
+        #     lw=0.5,
+        # )
 
         for x_axvline in plot_config["axvline"]:
             plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
