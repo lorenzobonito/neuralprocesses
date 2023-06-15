@@ -13,7 +13,7 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
-from mask_batch_general import mask_batch
+from batch_masking import mask_batch
 from noised_AR_pred_general import generate_AR_prediction
 
 __all__ = ["main"]
@@ -203,8 +203,6 @@ def main(**kw_args):
         observe = True
     elif args.evaluate:
         suffix = "_evaluate"
-        if args.ar:
-            suffix += "_ar"
     else:
         # The default is training.
         suffix = "_train"
@@ -521,4 +519,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth_diff_targ", dim_y=8, epochs=100 , objective="loglik")
+    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=100 , objective="loglik", evaluate=True)
