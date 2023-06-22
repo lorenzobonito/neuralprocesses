@@ -521,4 +521,5 @@ def main(**kw_args):
 
 if __name__ == "__main__":
     # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik")
-    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True)
+    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True)
+    main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")
