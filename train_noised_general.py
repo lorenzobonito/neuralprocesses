@@ -507,16 +507,18 @@ def main(**kw_args):
                         wd.file(f"model-best.torch"),
                     )
 
-                # Visualise a few predictions by the model.
-                gen = gen_cv()
-                for j in range(5):
-                    exp.visualise_noised_1d(
-                        model,
-                        gen,
-                        path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
-                        config=config,
-                    )
+                # Visualise a few predictions by the model every 10 epochs.
+                if i % 10 == 0:
+                    gen = gen_cv()
+                    for j in range(5):
+                        exp.visualise_noised_1d(
+                            model,
+                            gen,
+                            path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
+                            config=config,
+                        )
 
 
 if __name__ == "__main__":
+    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik")
     main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True)
