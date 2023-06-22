@@ -390,7 +390,7 @@ def main(**kw_args):
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
 
-        num_samples = 1000
+        num_samples = 100
         wd = WorkingDirectory(
             *args.root,
             *(args.subdir or ()),
@@ -519,4 +519,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=100 , objective="loglik", evaluate=True)
+    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True)

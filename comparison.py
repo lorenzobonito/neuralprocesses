@@ -213,3 +213,11 @@ if __name__ == "__main__":
 
     # plot_hist_comparison([new_split_1000_samples, new_joint_1000_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_1000")
     # print(compare((new_split_1000_samples, new_joint_1000_samples)))
+
+    # with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/loglik/500/eval_100_regular/logliks.json", "r") as f:
+    #     original = json.load(f)
+    # with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/loglik/500/eval_100/logliks.json", "r") as f:
+    #     with_loops = json.load(f)
+
+    # plot_hist_comparison_by_context([original, with_loops], ["Original", "With loops"], "og_vs_with_loops")
+    # print(compare((with_loops, original)))

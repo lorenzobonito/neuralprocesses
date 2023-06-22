@@ -5,16 +5,15 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from neuralprocesses.dist.normal import MultiOutputNormal
 from wbml.plot import tweak
-from batch_masking import mask_contexts, mask_xt
+from batch_masking import mask_contexts, mask_xt, mask_yt
 
 __all__ = ["generate_AR_prediction"]
 
 
 def generate_AR_prediction(state, model, batch, num_samples, normalise=True, path=None, config=None):
 
-    true_y0t = batch["yt"][0]
+    true_y0t = mask_yt(batch["yt"], 0)
     num_layers = len(batch["xt"])
     float = B.dtype_float(true_y0t)
     float64 = B.promote_dtypes(float, np.float64)
@@ -29,13 +28,14 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True, pat
         x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 200)
         x = x[None, None, :]
         x = AggregateInput(*((x, i) for i in range(num_layers)))
-    
-    batch["contexts"] = mask_contexts(batch["contexts"], num_layers-1)
 
     with torch.no_grad():
 
         logpdfs = None
         for _ in range(num_samples):
+
+            # Mask context for noisiest layer
+            contexts = mask_contexts(batch["contexts"], num_layers-1)
 
             if config:
                 plt.figure(figsize=(8, 6 * num_layers))
@@ -45,25 +45,25 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True, pat
 
                 if config:
                     l_x = mask_xt(x, level_index)
-                    state, pred = model(state, batch["contexts"], l_x)
+                    state, pred = model(state, contexts, l_x)
 
                 if level_index != 0:
                     l_xt = mask_xt(batch["xt"], level_index)
                     state, _, _, _, yt = nps.predict(state,
                                                     model,
-                                                    batch["contexts"],
+                                                    contexts,
                                                     l_xt,
                                                     num_samples=1,
                                                     batch_size=1)
                     l_yt = yt[level_index].squeeze(0).float()
-                    batch["contexts"][level_index] = (l_xt[level_index][0], l_yt)
+                    contexts[level_index] = (l_xt[level_index][0], l_yt)
 
                 if config:
                     plt.subplot(num_layers, 1, level_index+1)
-                    plt.scatter(batch["contexts"][0][0].squeeze(0), batch["contexts"][0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
+                    plt.scatter(contexts[0][0].squeeze(0), contexts[0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
                     for j in range(num_layers):
                         if j>level_index:
-                            plt.scatter(batch["contexts"][j][0].squeeze(0), batch["contexts"][j][1].squeeze(0), label=f"Auxiliary Context {j}", style="train", marker="^", c=colors[j-1], s=10)
+                            plt.scatter(contexts[j][0].squeeze(0), contexts[j][1].squeeze(0), label=f"Auxiliary Context {j}", style="train", marker="^", c=colors[j-1], s=10)
 
                     plt.scatter(
                         batch["xt"][level_index][0],
@@ -104,7 +104,7 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True, pat
             config = False
             
             l_xt = mask_xt(batch["xt"], 0)
-            state, pred = model(state, batch["contexts"], l_xt)
+            state, pred = model(state, contexts, l_xt)
 
             this_logpdfs = pred.logpdf(B.cast(float64, true_y0t))
 
