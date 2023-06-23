@@ -183,25 +183,25 @@ def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], file
 
 if __name__ == "__main__":
 
-    with open("logliks_convcnp.json", "r") as f:
-        convcnp = json.load(f)
+    # with open("logliks_convcnp.json", "r") as f:
+    #     convcnp = json.load(f)
     
-    with open("logliks_new_100_samples.json", "r") as f:
-        new_split_100_samples = json.load(f)
+    # with open("logliks_new_100_samples.json", "r") as f:
+    #     new_split_100_samples = json.load(f)
 
-    with open("logliks_new_1000_samples.json", "r") as f:
-        new_split_1000_samples = json.load(f)
+    # with open("logliks_new_1000_samples.json", "r") as f:
+    #     new_split_1000_samples = json.load(f)
 
-    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_100/logliks.json", "r") as f:
-        new_joint_100_samples = json.load(f)
+    # with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_100/logliks.json", "r") as f:
+    #     new_joint_100_samples = json.load(f)
 
-    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_1000/logliks.json", "r") as f:
-        new_joint_1000_samples = json.load(f)
+    # with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_1000/logliks.json", "r") as f:
+    #     new_joint_1000_samples = json.load(f)
 
-    plot_hist_comparison_by_context([convcnp, new_split_100_samples, new_split_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "new_loglik_comparison_new_split")
-    print(compare((new_split_100_samples, convcnp)))
-    print(compare((new_split_1000_samples, convcnp)))
-    print(compare((new_split_1000_samples, new_split_100_samples)))
+    # plot_hist_comparison_by_context([convcnp, new_split_100_samples, new_split_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "new_loglik_comparison_new_split")
+    # print(compare((new_split_100_samples, convcnp)))
+    # print(compare((new_split_1000_samples, convcnp)))
+    # print(compare((new_split_1000_samples, new_split_100_samples)))
 
     # plot_hist_comparison([convcnp, new_joint_100_samples, new_joint_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison_new_joint")
     # print(compare((new_joint_100_samples, convcnp)))
@@ -213,3 +213,11 @@ if __name__ == "__main__":
 
     # plot_hist_comparison([new_split_1000_samples, new_joint_1000_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_1000")
     # print(compare((new_split_1000_samples, new_joint_1000_samples)))
+
+    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/loglik/500/eval_100/logliks.json", "r") as f:
+        l_100 = json.load(f)
+    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/loglik/500/eval_1000/logliks.json", "r") as f:
+        l_1000 = json.load(f)
+
+    plot_hist_comparison_by_context([l_100, l_1000], ["100", "1000"], "100vs1000")
+    print(compare((l_1000, l_100)))

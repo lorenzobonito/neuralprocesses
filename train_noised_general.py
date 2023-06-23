@@ -13,7 +13,7 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
-from mask_batch_general import mask_batch
+from batch_masking import mask_batch
 from noised_AR_pred_general import generate_AR_prediction
 
 __all__ = ["main"]
@@ -93,7 +93,7 @@ def main(**kw_args):
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--dim-x", type=int, default=1)
     parser.add_argument("--dim-y", type=int, default=1)
-    # parser.add_argument("--noise_levels", type=int, default=2)
+    parser.add_argument("--ar-samples", type=int, default=100)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--rate", type=float)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -117,7 +117,7 @@ def main(**kw_args):
         default="eq",
     )
     parser.add_argument("--mean-diff", type=float, default=None)
-    parser.add_argument("--objective", choices=["loglik", "sl_loglik"], default="sl_loglik")
+    parser.add_argument("--objective", choices=["loglik", "sl_loglik"], default="loglik")
     parser.add_argument("--num-samples", type=int, default=20)
     parser.add_argument("--resume-at-epoch", type=int)
     parser.add_argument("--train-fast", action="store_true")
@@ -203,8 +203,6 @@ def main(**kw_args):
         observe = True
     elif args.evaluate:
         suffix = "_evaluate"
-        if args.ar:
-            suffix += "_ar"
     else:
         # The default is training.
         suffix = "_train"
@@ -392,7 +390,6 @@ def main(**kw_args):
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
 
-        num_samples = 1000
         wd = WorkingDirectory(
             *args.root,
             *(args.subdir or ()),
@@ -402,7 +399,7 @@ def main(**kw_args):
             *((args.arch,) if hasattr(args, "arch") else ()),
             args.objective,
             str(args.epochs),
-            f"eval_{num_samples}",
+            f"eval_{args.ar_samples}",
             log=f"log{suffix}.txt",
             diff=f"diff{suffix}.txt",
             observe=observe,
@@ -419,7 +416,7 @@ def main(**kw_args):
         for j in range(num_datasets):
             batch = gen.generate_batch()
             datasets.append(batch)
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=num_samples, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
             with open(wd.file("logliks.json"), "w", encoding="utf-8") as f:
@@ -509,16 +506,19 @@ def main(**kw_args):
                         wd.file(f"model-best.torch"),
                     )
 
-                # Visualise a few predictions by the model.
-                gen = gen_cv()
-                for j in range(5):
-                    exp.visualise_noised_1d(
-                        model,
-                        gen,
-                        path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
-                        config=config,
-                    )
+                # Visualise a few predictions by the model every 10 epochs.
+                if i % 10 == 0:
+                    gen = gen_cv()
+                    for j in range(5):
+                        exp.visualise_noised_1d(
+                            model,
+                            gen,
+                            path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
+                            config=config,
+                        )
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth_diff_targ", dim_y=8, epochs=100 , objective="loglik")
+    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik")
+    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True, ar_samples=1000)
+    # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")

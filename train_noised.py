@@ -13,7 +13,7 @@ import torch
 import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
-from mask_batch_general import mask_batch
+from mask_batch import mask_batch
 from noised_AR_pred import generate_AR_prediction
 
 __all__ = ["main"]
@@ -451,7 +451,7 @@ def main(**kw_args):
         # import sys
         # sys.exit(1)
 
-        num_samples = 1000
+        num_samples = 100
         wd = WorkingDirectory(
             *args.root,
             *(args.subdir or ()),
@@ -664,4 +664,4 @@ def main(**kw_args):
 
 if __name__ == "__main__":
     # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10, objective="sl_loglik", evaluate=True)
-    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=100 , objective="loglik")
+    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=100 , objective="loglik", evaluate=True)
