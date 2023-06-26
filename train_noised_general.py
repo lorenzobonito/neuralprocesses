@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-import time
 import warnings
 from functools import partial
 
@@ -92,6 +91,9 @@ def main(**kw_args):
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--dim-x", type=int, default=1)
     parser.add_argument("--dim-y", type=int, default=1)
+    parser.add_argument("--num-unet-channels", type=int, default=6)
+    parser.add_argument("--size-unet-channels", type=int, default=64)
+    parser.add_argument("--unet-kernels", type=int, default=5)
     parser.add_argument("--ar-samples", type=int, default=100)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--rate", type=float)
@@ -116,7 +118,7 @@ def main(**kw_args):
         default="eq",
     )
     parser.add_argument("--mean-diff", type=float, default=None)
-    parser.add_argument("--objective", choices=["loglik", "sl_loglik"], default="loglik")
+    parser.add_argument("--objective", choices=["loglik", "elbo"], default="loglik")
     parser.add_argument("--num-samples", type=int, default=20)
     parser.add_argument("--resume-at-epoch", type=int)
     parser.add_argument("--train-fast", action="store_true")
@@ -196,15 +198,9 @@ def main(**kw_args):
         args.experiment_setting = []
 
     # Determine settings for the setup of the script.
-    suffix = ""
     observe = False
     if args.check_completed or args.no_action or args.load:
         observe = True
-    elif args.evaluate:
-        suffix = "_evaluate"
-    else:
-        # The default is training.
-        suffix = "_train"
 
     data_dir = args.data if args.mean_diff is None else f"{args.data}-{args.mean_diff}"
     data_dir = data_dir if args.eeg_mode is None else f"{args.data}-{args.eeg_mode}"
@@ -212,17 +208,18 @@ def main(**kw_args):
     # Setup script.
     if not observe:
         out.report_time = True
-    wd = WorkingDirectory(
+    wd_train = WorkingDirectory(
         *args.root,
         *(args.subdir or ()),
         data_dir,
         *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
         "convcnp",
         *((args.arch,) if hasattr(args, "arch") else ()),
-        args.objective,
+        f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
         str(args.epochs),
-        log=f"log{suffix}.txt",
-        diff=f"diff{suffix}.txt",
+        "train",
+        log=f"log_train.txt" if not args.evaluate else "log_eval.txt",
+        diff=f"diff_train.txt" if not args.evaluate else "diff_eval.txt",
         observe=observe,
     )
 
@@ -257,9 +254,9 @@ def main(**kw_args):
         "enc_same": False,
         "num_heads": 8,
         "num_layers": 6,
-        "unet_channels": (64,) * 8,
-        "unet_kernels": 5,
-        "unet_strides": (1,) + (2,) * 7,
+        "unet_channels": (args.size_unet_channels,) * args.num_unet_channels,
+        "unet_kernels": args.unet_kernels,
+        "unet_strides": (1,) + (2,) * (args.num_unet_channels-1),
         "conv_channels": 64,
         "encoder_scales": None,
         "fullconvgnp_kernel_factor": 2,
@@ -289,8 +286,8 @@ def main(**kw_args):
 
     # Check if a run has completed.
     if args.check_completed:
-        if os.path.exists(wd.file("model-last.torch")):
-            d = patch_model(torch.load(wd.file("model-last.torch"), map_location="cpu"))
+        if os.path.exists(wd_train.file("model-last.torch")):
+            d = patch_model(torch.load(wd_train.file("model-last.torch"), map_location="cpu"))
             if d["epoch"] >= args.epochs - 1:
                 out.out("Completed!")
                 sys.exit(0)
@@ -370,7 +367,7 @@ def main(**kw_args):
     # See if the point was to just load everything.
     if args.load:
         return {
-            "wd": wd,
+            "wd": wd_train,
             "gen_train": gen_train,
             "gen_cv": gen_cv,
             "gens_eval": gens_eval,
@@ -388,21 +385,21 @@ def main(**kw_args):
         else:
             name = "model-best.torch"
         model.load_state_dict(
-            patch_model(torch.load(wd.file(name), map_location=device))["weights"]
+            patch_model(torch.load(wd_train.file(name), map_location=device))["weights"]
         )
 
-        wd = WorkingDirectory(
+        wd_eval = WorkingDirectory(
             *args.root,
             *(args.subdir or ()),
             data_dir,
             *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
             "convcnp",
             *((args.arch,) if hasattr(args, "arch") else ()),
-            args.objective,
+            f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             str(args.epochs),
-            f"eval_{args.ar_samples}",
-            log=f"log{suffix}.txt",
-            diff=f"diff{suffix}.txt",
+            "eval",
+            log=f"log_eval.txt",
+            diff=f"diff_eval.txt",
             observe=observe,
         )
 
@@ -410,17 +407,17 @@ def main(**kw_args):
         import json
         gen = gen_cv()
         gen.batch_size = 1
-        num_datasets = 100
+        num_datasets = 5
         logliks = []
         json_data = {}
         datasets = []
         for j in range(num_datasets):
             batch = gen.generate_batch()
             datasets.append(batch)
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
-            with open(wd.file("logliks.json"), "w", encoding="utf-8") as f:
+            with open(wd_eval.file("logliks.json"), "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
 
         logliks = B.concat(*logliks)
@@ -433,10 +430,10 @@ def main(**kw_args):
         if args.resume_at_epoch:
             start = args.resume_at_epoch - 1
             d_last = patch_model(
-                torch.load(wd.file("model-last.torch"), map_location=device)
+                torch.load(wd_train.file("model-last.torch"), map_location=device)
             )
             d_best = patch_model(
-                torch.load(wd.file("model-best.torch"), map_location=device)
+                torch.load(wd_train.file("model-best.torch"), map_location=device)
             )
             model.load_state_dict(d_last["weights"])
             best_eval_lik = d_best["objective"]
@@ -464,7 +461,7 @@ def main(**kw_args):
                             "weights": model.state_dict(),
                             "epoch": i + 1,
                         },
-                        wd.file(f"model-epoch-{i+1}.torch"),
+                        wd_train.file(f"model-epoch-{i+1}.torch"),
                     )
 
                 # Perform an epoch.
@@ -491,7 +488,7 @@ def main(**kw_args):
                         "objective": vals,
                         "epoch": i + 1,
                     },
-                    wd.file(f"model-last.torch"),
+                    wd_train.file(f"model-last.torch"),
                 )
 
                 improved = vals > best_eval_lik
@@ -505,7 +502,7 @@ def main(**kw_args):
                             "objective": vals,
                             "epoch": i + 1,
                         },
-                        wd.file(f"model-best.torch"),
+                        wd_train.file(f"model-best.torch"),
                     )
 
                 # Visualise a few predictions by the model every 10 epochs.
@@ -515,12 +512,14 @@ def main(**kw_args):
                         exp.visualise_noised_1d(
                             model,
                             gen,
-                            path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
+                            path=wd_train.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
                             config=config,
                         )
 
 
 if __name__ == "__main__":
     # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10 , objective="loglik")
-    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=10 , objective="loglik")
+    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2)
+    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=3, evaluate=True)
+    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5, num_unet_channels=10, size_unet_channels=128, unet_kernels=7, evaluate=True)
     # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")
