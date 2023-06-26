@@ -218,8 +218,8 @@ def main(**kw_args):
         f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
         str(args.epochs),
         "train",
-        log=f"log_train.txt" if not args.evaluate else "log_eval.txt",
-        diff=f"diff_train.txt" if not args.evaluate else "diff_eval.txt",
+        log=f"log_train.txt" if not args.evaluate else None,
+        diff=f"diff_train.txt" if not args.evaluate else None,
         observe=observe,
     )
 
@@ -327,7 +327,7 @@ def main(**kw_args):
 
     # Ensure that the model is on the GPU and print the setup.
     model = model.to(device)
-    if not args.load:
+    if not args.load and not args.evaluate:
         out.kv(
             "Arguments",
             {
@@ -379,14 +379,6 @@ def main(**kw_args):
         exit()
 
     if args.evaluate:
-        # Perform evaluation.
-        if args.evaluate_last:
-            name = "model-last.torch"
-        else:
-            name = "model-best.torch"
-        model.load_state_dict(
-            patch_model(torch.load(wd_train.file(name), map_location=device))["weights"]
-        )
 
         wd_eval = WorkingDirectory(
             *args.root,
@@ -403,6 +395,29 @@ def main(**kw_args):
             observe=observe,
         )
 
+        if not args.load:
+            out.kv(
+                "Arguments",
+                {
+                    attr: getattr(args, attr)
+                    for attr in args.__dir__()
+                    if not attr.startswith("_")
+                },
+            )
+            out.kv(
+                "Config", {k: "<custom>" if k == "model" else v for k, v in config.items()}
+            )
+            out.kv("Number of parameters", nps.num_params(model))
+
+        # Perform evaluation.
+        if args.evaluate_last:
+            name = "model-last.torch"
+        else:
+            name = "model-best.torch"
+        model.load_state_dict(
+            patch_model(torch.load(wd_train.file(name), map_location=device))["weights"]
+        )
+
         # Evaluate different context sets
         import json
         gen = gen_cv()
@@ -417,12 +432,12 @@ def main(**kw_args):
             state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
+            out.kv(f"Dataset {j}", (str(batch["contexts"][0][0].numel()), *loglik))
             with open(wd_eval.file("logliks.json"), "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
 
         logliks = B.concat(*logliks)
-        print(logliks)
-        out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
+        out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
 
     else:
         # Perform training. First, check if we want to resume training.
@@ -519,7 +534,7 @@ def main(**kw_args):
 
 if __name__ == "__main__":
     # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10 , objective="loglik")
-    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2)
-    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=3, evaluate=True)
+    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2)
+    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2, evaluate=True)
     # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5, num_unet_channels=10, size_unet_channels=128, unet_kernels=7, evaluate=True)
     # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")
