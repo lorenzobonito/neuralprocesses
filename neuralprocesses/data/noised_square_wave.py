@@ -4,13 +4,13 @@ import torch
 
 from neuralprocesses.aggregate import Aggregate, AggregateInput
 
-from .data import SyntheticGenerator, new_batch, new_multi_batch
+from .data import SyntheticGenerator, new_multi_batch
 from ..dist import UniformContinuous
 
-__all__ = ["NoisedSquareWaveDiffTargGenerator"]
+__all__ = ["NoisedSquareWaveGenerator"]
 
 
-class NoisedSquareWaveDiffTargGenerator(SyntheticGenerator):
+class NoisedSquareWaveGenerator(SyntheticGenerator):
 
     def __init__(self, *args, dist_freq=UniformContinuous(0.5, 5), dist_off=UniformContinuous(-1, 1), dist_ampl=UniformContinuous(0.5, 2), noise_levels=2, **kw_args):
         super().__init__(*args, **kw_args)

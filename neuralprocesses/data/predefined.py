@@ -6,8 +6,7 @@ from .mixture import MixtureGenerator
 from .mixgp import MixtureGPGenerator
 from .sawtooth import SawtoothGenerator
 from .noised_sawtooth import NoisedSawtoothGenerator
-from .noised_sawtooth_diff_targ import NoisedSawtoothDiffTargGenerator
-from .noised_square_wave_diff_targ import NoisedSquareWaveDiffTargGenerator
+from .noised_square_wave import NoisedSquareWaveGenerator
 from ..dist.uniform import UniformDiscrete, UniformContinuous
 
 __all__ = ["construct_predefined_gens"]
@@ -112,18 +111,7 @@ def construct_predefined_gens(
         **config,
     )
 
-    gens["noised_sawtooth_diff_targ"] = NoisedSawtoothDiffTargGenerator(
-        dtype,
-        seed=seed,
-        noise=0,
-        dist_freq=UniformContinuous(2 / factor, 4 / factor),
-        noise_levels=noise_levels,
-        num_context=UniformDiscrete(0, max_context),
-        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
-        **config,
-    )
-
-    gens["noised_square_wave_diff_targ"] = NoisedSquareWaveDiffTargGenerator(
+    gens["noised_square_wave"] = NoisedSquareWaveGenerator(
         dtype,
         seed=seed,
         noise=0,

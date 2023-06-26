@@ -9,4 +9,4 @@ from .predprey import *
 from .sawtooth import *
 from .temperature import *
 from .noised_sawtooth import *
-from .noised_sawtooth_diff_targ import *
+from .noised_square_wave import *

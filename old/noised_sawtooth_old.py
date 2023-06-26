@@ -3,8 +3,8 @@ import torch
 
 from neuralprocesses.aggregate import Aggregate, AggregateInput
 
-from .data import SyntheticGenerator, new_multi_batch
-from ..dist import UniformContinuous
+from ..neuralprocesses.data.data import SyntheticGenerator, new_batch
+from ..neuralprocesses.dist import UniformContinuous
 
 __all__ = ["NoisedSawtoothGenerator"]
 
@@ -16,19 +16,14 @@ class NoisedSawtoothGenerator(SyntheticGenerator):
         self.dist_freq = dist_freq
         self.noise_levels = noise_levels
 
-    def _noise_up(self, yt, iters, beta=0.1):
+    def _noise_up(self, yt, beta=0.1):
 
-        for _ in range(iters):
-            yt = B.sqrt(1-beta)*yt+ beta*torch.randn(yt.shape).to(self.device)
-
-        return yt
+        return B.sqrt(1-beta)*yt + beta*torch.randn(yt.shape).to(self.device)
 
     def generate_batch(self):
         with B.on_device(self.device):
-
-            xc, nc, multi_xt = new_multi_batch(self, self.dim_y, self.noise_levels+1)
-            x = B.concat(xc, multi_xt[0], axis=1)
-            _c = lambda x: B.cast(self.dtype, x)
+            set_batch, xcs, xc, nc, xts, xt, nt = new_batch(self, self.dim_y)
+            x = B.concat(xc, xt, axis=1)
 
             # Sample a frequency.
             self.state, freq = self.dist_freq.sample(
@@ -59,30 +54,33 @@ class NoisedSawtoothGenerator(SyntheticGenerator):
             )
             offset = sample / freq
 
-            multi_yt = []
-            for level, xt in enumerate(multi_xt):
+            # Construct the sawtooth and add noise.
+            f = (freq * (B.matmul(direction, x, tr_b=True) - offset)) % 1
+            if self.h is not None:
+                f = B.matmul(self.h, f)
+            y = f + B.sqrt(self.noise) * B.randn(f)
 
-                x = B.concat(xc, xt, axis=1)
-
-                # Construct the sawtooth and add noise.
-                f = (freq * (B.matmul(direction, x, tr_b=True) - offset)) % 1
-                if self.h is not None:
-                    f = B.matmul(self.h, f)
-                y = f + B.sqrt(self.noise) * B.randn(f)
-
-                yc = _c(y[:, :, :nc])
-                yt = self._noise_up(_c(y[:, :, nc:]), level)
-
-                if level == 0:
-                    context = [(_c(B.transpose(xc)), yc)]
-                else:
-                    context.extend([(_c(B.transpose(xt)), yt)])
-                multi_yt.append(yt)
+            y_c = y[:, :, :nc]
+            y0_t = y[:, :, nc:]
 
             # Create batch.
             batch = {}
-            batch["contexts"] = context
-            batch["xt"] = AggregateInput(*((_c(B.transpose(xt)), i) for i, xt in enumerate(multi_xt)))
-            batch["yt"] = Aggregate(*multi_yt)
+            set_batch(batch, y_c, y0_t, transpose=False)
 
+            xt = batch["xt"]
+            yts = [y0_t]
+
+            # Create noised targets
+            for _ in range(self.noise_levels):
+                yts.append(self._noise_up(yts[-1]))
+
+            _c = lambda x: B.cast(self.dtype, x)
+            
+            # Add further context sets
+            batch["contexts"].extend([(_c(xt), _c(yt)) for yt in yts[1:]])
+
+            # Add further targets
+            batch["xt"] = AggregateInput(*((_c(xt), i) for i in range(self.noise_levels + 1)))
+            batch["yt"] = Aggregate(*(_c(yt) for yt in yts))
+            
             return batch

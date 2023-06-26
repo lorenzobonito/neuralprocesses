@@ -13,7 +13,7 @@ import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 from batch_masking import mask_batch
-from noised_AR_pred_general import generate_AR_prediction
+from noised_AR_pred import generate_AR_prediction
 from training_dynamics import plot_training_dynamics
 
 __all__ = ["main"]
@@ -391,10 +391,13 @@ def main(**kw_args):
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             str(args.epochs),
             "eval",
+            str(args.ar_samples),
             log=f"log_eval.txt",
             diff=f"diff_eval.txt",
             observe=observe,
         )
+
+        os.makedirs(os.path.join(wd_eval.file(), "images"), exist_ok=True)
 
         if not args.load:
             out.kv(
@@ -423,14 +426,14 @@ def main(**kw_args):
         import json
         gen = gen_cv()
         gen.batch_size = 1
-        num_datasets = 5
+        num_datasets = 100
         logliks = []
         json_data = {}
         datasets = []
         for j in range(num_datasets):
             batch = gen.generate_batch()
             datasets.append(batch)
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
             out.kv(f"Dataset {j}", (str(batch["contexts"][0][0].numel()), *loglik))
@@ -526,7 +529,7 @@ def main(**kw_args):
                 os.makedirs(os.path.join(wd_train.file(), "images", "outputs"), exist_ok=True)
                 
                 # Visualise a few predictions by the model every 10 epochs.
-                if i % 10 == 0:
+                if i % 10 == 0 or i == args.epochs-1:
                     gen = gen_cv()
                     for j in range(5):
                         exp.visualise_noised_1d(
@@ -542,8 +545,8 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10 , objective="loglik")
-    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5)
+    # main(data="noised_sawtooth", dim_y=3, epochs=100)
+    main(data="noised_sawtooth", dim_y=3, epochs=100, evaluate=True, ar_samples=1000)
     # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2, evaluate=True)
     # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5, num_unet_channels=10, size_unet_channels=128, unet_kernels=7, evaluate=True)
     # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")

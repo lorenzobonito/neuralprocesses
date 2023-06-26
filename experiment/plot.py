@@ -5,7 +5,7 @@ import stheno
 import torch
 from wbml.plot import tweak
 
-from context_utils import mask_contexts
+from batch_masking import mask_contexts
 
 __all__ = ["visualise", "visualise_noised_1d", "visualise_split"]
 
@@ -15,7 +15,7 @@ def visualise_split(model, gen, *, path, config, model_index, predict=nps.predic
     # batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
     # gen.batch_size = 1
     batch = gen.generate_batch()
-    batch["contexts"] = mask_contexts(batch["contexts"], gen.batch_size, model_index)
+    batch["contexts"] = mask_contexts(batch["contexts"], model_index)
     batch["xt"] = batch["xt"][model_index][0]
     batch["yt"] = batch["yt"][model_index]
 
