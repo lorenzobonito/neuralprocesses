@@ -16,7 +16,7 @@ from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 
 from context_utils import mask_contexts
-from noised_AR_pred import split_AR_prediction
+from noised_AR_pred_old import split_AR_prediction
 
 __all__ = ["main"]
 

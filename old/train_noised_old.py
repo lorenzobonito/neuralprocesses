@@ -14,7 +14,7 @@ import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 from mask_batch import mask_batch
-from noised_AR_pred import generate_AR_prediction
+from noised_AR_pred_old import generate_AR_prediction
 
 __all__ = ["main"]
 

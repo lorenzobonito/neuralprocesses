@@ -4,10 +4,10 @@ from neuralprocesses.aggregate import Aggregate, AggregateInput
 
 from neuralprocesses.dist.normal import MultiOutputNormal
 
-from .model import Model
+from neuralprocesses.model import Model
 # from .util import fix_noise as fix_noise_in_pred
-from .. import _dispatch
-from ..numdata import num_data
+from neuralprocesses import _dispatch
+from neuralprocesses.numdata import num_data
 
 __all__ = ["sl_loglik"]
 

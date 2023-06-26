@@ -14,6 +14,7 @@ from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 from batch_masking import mask_batch
 from noised_AR_pred_general import generate_AR_prediction
+from training_dynamics import plot_training_dynamics
 
 __all__ = ["main"]
 
@@ -520,6 +521,10 @@ def main(**kw_args):
                         wd_train.file(f"model-best.torch"),
                     )
 
+                # Creating folder for output images
+                os.makedirs(os.path.join(wd_train.file(), "images"), exist_ok=True)
+                os.makedirs(os.path.join(wd_train.file(), "images", "outputs"), exist_ok=True)
+                
                 # Visualise a few predictions by the model every 10 epochs.
                 if i % 10 == 0:
                     gen = gen_cv()
@@ -527,14 +532,18 @@ def main(**kw_args):
                         exp.visualise_noised_1d(
                             model,
                             gen,
-                            path=wd_train.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
+                            path=wd_train.file(f"images/outputs/epoch-{i + 1:03d}-{j + 1}.pdf"),
                             config=config,
                         )
+            
+        # Plot training dynamics
+        os.makedirs(os.path.join(wd_train.file(), "images", "dynamics"), exist_ok=True)
+        plot_training_dynamics(wd_train)
 
 
 if __name__ == "__main__":
     # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10 , objective="loglik")
-    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2)
-    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2, evaluate=True)
+    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5)
+    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2, evaluate=True)
     # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5, num_unet_channels=10, size_unet_channels=128, unet_kernels=7, evaluate=True)
     # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")
