@@ -15,7 +15,6 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
     # Architecture choices specific for the GP experiments:
     # TODO: We should use a stride of 1 in the first layer, but for compatibility
     #    reasons with the models we already trained, we keep it like this.
-    config["unet_strides"] = (2,) * 6
     config["conv_receptive_field"] = 4
     config["margin"] = 0.1
     if args.dim_x == 1:

@@ -50,8 +50,8 @@ def train(state, model, opt, objective, gen, *, fix_noise):
     vals = dict((k, B.concat(*v)) for k, v in vals.items())
     for level in levels:
         out.kv(f"Loglik (T, {level})", exp.with_err(vals[level], and_lower=True))
-    vals = B.concat(*vals.values())
-    return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
+    vals = np.array([B.mean(B.concat(vals[level])) - 1.96 * B.std(B.concat(vals[level])) / B.sqrt(len(B.concat(vals[level]))) for level in levels])
+    return state, vals
 
 
 def eval(state, model, objective, gen):
@@ -79,9 +79,8 @@ def eval(state, model, objective, gen):
         vals = dict((k, B.concat(*v)) for k, v in vals.items())
         for level in levels:
             out.kv(f"Loglik (V, {level})", exp.with_err(vals[level], and_lower=True))
-        vals = B.concat(*vals.values())
-        return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
-
+        vals = np.array([B.mean(B.concat(vals[level])) - 1.96 * B.std(B.concat(vals[level])) / B.sqrt(len(B.concat(vals[level]))) for level in levels])
+        return state, vals
 
 def main(**kw_args):
     # Setup arguments.
@@ -258,8 +257,9 @@ def main(**kw_args):
         "enc_same": False,
         "num_heads": 8,
         "num_layers": 6,
-        "unet_channels": (64,) * 6,
-        "unet_strides": (1,) + (2,) * 5,
+        "unet_channels": (64,) * 8,
+        "unet_kernels": 5,
+        "unet_strides": (1,) + (2,) * 7,
         "conv_channels": 64,
         "encoder_scales": None,
         "fullconvgnp_kernel_factor": 2,
@@ -314,6 +314,7 @@ def main(**kw_args):
             likelihood="het",
             conv_arch=args.arch,
             unet_channels=config["unet_channels"],
+            unet_kernels=config["unet_kernels"],
             unet_strides=config["unet_strides"],
             conv_channels=config["conv_channels"],
             conv_layers=config["num_layers"],
@@ -440,7 +441,7 @@ def main(**kw_args):
             model.load_state_dict(d_last["weights"])
             best_eval_lik = d_best["objective"]
         else:
-            best_eval_lik = -np.inf
+            best_eval_lik = np.ones((1, args.dim_y))*-np.inf
 
         # Setup training loop.
         opt = torch.optim.Adam(model.parameters(), args.rate)
@@ -481,26 +482,27 @@ def main(**kw_args):
                 )
 
                 # The epoch is done. Now evaluate.
-                state, val = eval(state, model, objective_cv, gen_cv())
+                state, vals = eval(state, model, objective_cv, gen_cv())
 
                 # Save current model.
                 torch.save(
                     {
                         "weights": model.state_dict(),
-                        "objective": val,
+                        "objective": vals,
                         "epoch": i + 1,
                     },
                     wd.file(f"model-last.torch"),
                 )
 
+                improved = vals > best_eval_lik
                 # Check if the model is the new best. If so, save it.
-                if val > best_eval_lik:
+                if improved.all():
                     out.out("New best model!")
-                    best_eval_lik = val
+                    best_eval_lik = vals
                     torch.save(
                         {
                             "weights": model.state_dict(),
-                            "objective": val,
+                            "objective": vals,
                             "epoch": i + 1,
                         },
                         wd.file(f"model-best.torch"),
@@ -519,6 +521,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik")
-    main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=500 , objective="loglik", evaluate=True, ar_samples=1000)
+    # main(data="noised_sawtooth_diff_targ", dim_y=3, epochs=10 , objective="loglik")
+    main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=10 , objective="loglik")
     # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")
