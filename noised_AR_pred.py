@@ -29,6 +29,10 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True, pat
         x = x[None, None, :]
         x = AggregateInput(*((x, i) for i in range(num_layers)))
 
+        # If we want to predict only at original target locations, the line below should be left uncommented.
+        # Both options should be investigated.
+        batch["xt"] = AggregateInput(*((batch["xt"][0][0], i) for i in range(num_layers)))
+
     with torch.no_grad():
 
         logpdfs = None

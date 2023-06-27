@@ -258,6 +258,7 @@ def main(**kw_args):
         "unet_channels": (args.size_unet_channels,) * args.num_unet_channels,
         "unet_kernels": args.unet_kernels,
         "unet_strides": (1,) + (2,) * (args.num_unet_channels-1),
+        # "unet_strides": (2,) * (args.num_unet_channels),
         "conv_channels": 64,
         "encoder_scales": None,
         "fullconvgnp_kernel_factor": 2,
@@ -435,7 +436,7 @@ def main(**kw_args):
             datasets.append(batch)
             state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{j + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
-            json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
+            json_data[j] = (batch["contexts"][0][0].numel(), loglik.item())
             out.kv(f"Dataset {j}", (str(batch["contexts"][0][0].numel()), *loglik))
             with open(wd_eval.file("logliks.json"), "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
@@ -545,8 +546,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    # main(data="noised_sawtooth", dim_y=3, epochs=100)
-    main(data="noised_sawtooth", dim_y=3, epochs=100, evaluate=True, ar_samples=1000)
-    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=2, evaluate=True)
-    # main(data="noised_sawtooth_diff_targ", dim_y=5, epochs=5, num_unet_channels=10, size_unet_channels=128, unet_kernels=7, evaluate=True)
-    # main(data="noised_square_wave_diff_targ", dim_y=3, epochs=100, objective="loglik")
+    main(data="noised_sawtooth", dim_y=3, epochs=500)
+    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=10, size_unet_channels=70)
+    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=12, size_unet_channels=80)

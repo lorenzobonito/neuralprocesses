@@ -6,11 +6,11 @@ import numpy as np
 
 def compare(logliks: Tuple[dict, dict]):
 
-    num_datasets = len(logliks[0])
+    _, num_datasets = _check_consistency(logliks)
     counter = len(logliks[0])
     
     for d in range(num_datasets):
-        if np.exp(logliks[0][str(d)][0]) < np.exp(logliks[1][str(d)][0]):
+        if np.exp(logliks[0][str(d)][1]) < np.exp(logliks[1][str(d)][1]):
             # print(logliks[0][str(d)], logliks[1][str(d)])
             counter -= 1
     
@@ -29,9 +29,9 @@ def _check_consistency(logliks: List[dict]):
     # Check that corresponding datasets within each model have the same
     # number of context points
     for d in range(num_datasets):
-        context_size = logliks[0][str(d)][1]
+        context_size = logliks[0][str(d)][0]
         for m in range(1, num_models):
-            assert context_size == logliks[m][str(d)][1]
+            assert context_size == logliks[m][str(d)][0]
     
     return num_models, num_datasets
 
@@ -44,9 +44,9 @@ def _process_data(logliks: List[dict], avg_context: bool = True):
     for d in range(num_datasets):
         for m in range(0, num_models):
             if m == 0:
-                datasets[d] = [logliks[m][str(d)][1], np.exp(logliks[m][str(d)][0])]
+                datasets[d] = [logliks[m][str(d)][0], np.exp(logliks[m][str(d)][1])]
             else:
-                datasets[d].append(np.exp(logliks[m][str(d)][0]))
+                datasets[d].append(np.exp(logliks[m][str(d)][1]))
     
     if avg_context:
         # Averaging over context sizes
@@ -214,9 +214,9 @@ if __name__ == "__main__":
     # plot_hist_comparison([new_split_1000_samples, new_joint_1000_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_1000")
     # print(compare((new_split_1000_samples, new_joint_1000_samples)))
 
-    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/loglik/500/eval_100/logliks.json", "r") as f:
+    with open("_experiments/noised_sawtooth/x1_y3/convcnp/unet/s64_n6_k5/100/eval/100/logliks.json", "r") as f:
         l_100 = json.load(f)
-    with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/loglik/500/eval_1000/logliks.json", "r") as f:
+    with open("_experiments/noised_sawtooth/x1_y3/convcnp/unet/s64_n6_k5/100/eval/1000/logliks.json", "r") as f:
         l_1000 = json.load(f)
 
     plot_hist_comparison_by_context([l_100, l_1000], ["100", "1000"], "100vs1000")
