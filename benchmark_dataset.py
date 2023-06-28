@@ -1,4 +1,3 @@
-import pickle
 import torch
 import lab as B
 import neuralprocesses.torch as nps
@@ -14,7 +13,7 @@ X_RANGE_TARGET = (-2, 2)
 
 def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict):
 
-    if gen_type.lower() == "sawtooth":
+    if gen_type.lower() == "noised_sawtooth":
         gen = NoisedSawtoothGenerator(
             torch.float32,
             seed=42,
@@ -25,7 +24,7 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
             num_target=UniformDiscrete(100 * DIM_X, 100 * DIM_X),
             **config,
         )
-    elif gen_type.lower() == "square_wave":
+    elif gen_type.lower() == "noised_square_wave":
         gen = NoisedSquareWaveGenerator(
             torch.float32,
             seed=42,
@@ -47,9 +46,9 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
 
 if __name__ == "__main__":
 
-    DIM_Y = 3
-    GEN_TYPE = "sawtooth"
-    # GEN_TYPE = "square_wave"
+    DIM_Y = 6
+    GEN_TYPE = "noised_sawtooth"
+    # GEN_TYPE = "noised_square_wave"
 
     config = {
             "num_tasks": 1,
@@ -66,7 +65,7 @@ if __name__ == "__main__":
 
     empty = B.randn(torch.float32, 1, 1, 0)
     for batch in batches:
-        xts = [(batch["xt"][0], 0)]
+        xts = [batch["xt"][0]]
         yts = [batch["yt"][0]]
         for i in range(1, DIM_Y):
             batch["contexts"].append((empty, empty))
@@ -75,5 +74,4 @@ if __name__ == "__main__":
         batch["xt"] = AggregateInput(*xts)
         batch["yt"] = Aggregate(*yts)
 
-    with open(f"benchmark_dataset_{DIM_Y}_layers.pickle", "wb") as f:
-        pickle.dump(batches, f, protocol=pickle.HIGHEST_PROTOCOL)
+    torch.save(batches, f"benchmark_dataset_{GEN_TYPE}_{DIM_Y}_layers.pt")

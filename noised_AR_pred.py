@@ -69,13 +69,14 @@ def generate_AR_prediction(state, model, batch, num_samples, normalise=True, pat
                         if j>level_index:
                             plt.scatter(contexts[j][0].squeeze(0), contexts[j][1].squeeze(0), label=f"Auxiliary Context {j}", style="train", marker="^", c=colors[j-1], s=10)
 
-                    plt.scatter(
-                        batch["xt"][level_index][0],
-                        batch["yt"][level_index],
-                        label="Target",
-                        style="test",
-                        s=20,
-                    )
+                    if level_index == 0:
+                        plt.scatter(
+                            batch["xt"][level_index][0],
+                            batch["yt"][level_index],
+                            label="Target",
+                            style="test",
+                            s=20,
+                        )
 
                     # Plot prediction.
                     err = 1.96 * B.sqrt(pred.var[level_index][0, 0])

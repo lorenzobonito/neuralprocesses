@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 import warnings
@@ -354,17 +355,17 @@ def main(**kw_args):
         num_samples=args.num_samples,
         normalise=not args.unnormalised,
     )
-    objectives_eval = [
-        (
-            "Loglik",
-            partial(
-                nps.loglik,
-                num_samples=args.evaluate_num_samples,
-                batch_size=args.evaluate_batch_size,
-                normalise=not args.unnormalised,
-            ),
-        )
-    ]
+    # objectives_eval = [
+    #     (
+    #         "Loglik",
+    #         partial(
+    #             nps.loglik,
+    #             num_samples=args.evaluate_num_samples,
+    #             batch_size=args.evaluate_batch_size,
+    #             normalise=not args.unnormalised,
+    #         ),
+    #     )
+    # ]
 
     # See if the point was to just load everything.
     if args.load:
@@ -423,21 +424,17 @@ def main(**kw_args):
             patch_model(torch.load(wd_train.file(name), map_location=device))["weights"]
         )
 
-        # Evaluate different context sets
-        import json
-        gen = gen_cv()
-        gen.batch_size = 1
-        num_datasets = 100
+        # Load different context sets
+        dataset = torch.load(f"benchmark_datasets/benchmark_dataset_{args.data}_{args.dim_y}_layers.pt", map_location=device)
+        
+        # Evaluate model predictions over context sets
         logliks = []
         json_data = {}
-        datasets = []
-        for j in range(num_datasets):
-            batch = gen.generate_batch()
-            datasets.append(batch)
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{j + 1:03d}.pdf"), config=config)
+        for idx, batch in enumerate(dataset):
+            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
-            json_data[j] = (batch["contexts"][0][0].numel(), loglik.item())
-            out.kv(f"Dataset {j}", (str(batch["contexts"][0][0].numel()), *loglik))
+            json_data[idx] = (batch["contexts"][0][0].numel(), loglik.item())
+            out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *loglik))
             with open(wd_eval.file("logliks.json"), "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
 
@@ -546,6 +543,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="noised_sawtooth", dim_y=3, epochs=500)
-    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=10, size_unet_channels=70)
-    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=12, size_unet_channels=80)
+    # main(data="noised_sawtooth", dim_y=6, epochs=500, evaluate=True, ar_samples=1000, gpu=1)
+    # main(data="noised_sawtooth", dim_y=6, epochs=500, num_unet_channels=10, size_unet_channels=70, evaluate=True, ar_samples=1000, gpu=1)
+    main(data="noised_sawtooth", dim_y=6, epochs=500, num_unet_channels=12, size_unet_channels=80, evaluate=True, ar_samples=1000, gpu=1)
