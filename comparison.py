@@ -1,3 +1,4 @@
+import itertools
 import json
 from typing import List, Tuple
 
@@ -177,47 +178,43 @@ def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], file
     ax.yaxis.set_tick_params(width=1)
 
     plt.tight_layout()
-    plt.savefig(f"images/{filename}.png", dpi=600)
+    plt.savefig(f"images/{filename}.png", dpi=400)
     plt.close()
 
 
 if __name__ == "__main__":
 
-    # with open("logliks_convcnp.json", "r") as f:
-    #     convcnp = json.load(f)
-    
-    # with open("logliks_new_100_samples.json", "r") as f:
-    #     new_split_100_samples = json.load(f)
+    DATASETS = ["noised_sawtooth", "noised_square_wave"]
+    Y_DIMS = [3, 4, 5, 6]
+    NUMS_AR_SAMPLES = [100, 1000]
+    ARCHS = ["s64_n6_k5", "s70_n10_k5", "s80_n12_k5"]
 
-    # with open("logliks_new_1000_samples.json", "r") as f:
-    #     new_split_1000_samples = json.load(f)
+    # Plot architecture comparisons
+    for dataset, y_dim, num_ar_samples in itertools.product(DATASETS, Y_DIMS, NUMS_AR_SAMPLES):
+        with open(f"_experiments/{dataset}/x1_y{y_dim}/convcnp/unet/s64_n6_k5/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            small = json.load(f)
+        with open(f"_experiments/{dataset}/x1_y{y_dim}/convcnp/unet/s70_n10_k5/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            medium = json.load(f)
+        with open(f"_experiments/{dataset}/x1_y{y_dim}/convcnp/unet/s80_n12_k5/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            large = json.load(f)
+        plot_hist_comparison_by_context([small, medium, large], ["s64_n6_k5", "s70_n10_k5", "s80_n12_k5"], f"arch_comp/{dataset}_x1_y{y_dim}_{num_ar_samples}")
 
-    # with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_100/logliks.json", "r") as f:
-    #     new_joint_100_samples = json.load(f)
+    # Plot y_dim comparisons
+    for dataset, arch, num_ar_samples in itertools.product(DATASETS, ARCHS, NUMS_AR_SAMPLES):
+        with open(f"_experiments/{dataset}/x1_y3/convcnp/unet/{arch}/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            l3 = json.load(f)
+        with open(f"_experiments/{dataset}/x1_y4/convcnp/unet/{arch}/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            l4 = json.load(f)
+        with open(f"_experiments/{dataset}/x1_y5/convcnp/unet/{arch}/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            l5 = json.load(f)
+        with open(f"_experiments/{dataset}/x1_y6/convcnp/unet/{arch}/500/eval/{num_ar_samples}/logliks.json", "r") as f:
+            l6 = json.load(f)
+        plot_hist_comparison_by_context([l3, l4, l5, l6], ["3 layers", "4 layers", "5 layers", "6 layers"], f"ydim_comp/{dataset}_{arch}_{num_ar_samples}")
 
-    # with open("_experiments/noised_sawtooth_diff_targ/x1_y3/convcnp/unet/sl_loglik/500/eval_1000/logliks.json", "r") as f:
-    #     new_joint_1000_samples = json.load(f)
-
-    # plot_hist_comparison_by_context([convcnp, new_split_100_samples, new_split_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "new_loglik_comparison_new_split")
-    # print(compare((new_split_100_samples, convcnp)))
-    # print(compare((new_split_1000_samples, convcnp)))
-    # print(compare((new_split_1000_samples, new_split_100_samples)))
-
-    # plot_hist_comparison([convcnp, new_joint_100_samples, new_joint_1000_samples], ["Baseline", "Noised (100 samples)", "Noised (1000 samples)"], "loglik_comparison_new_joint")
-    # print(compare((new_joint_100_samples, convcnp)))
-    # print(compare((new_joint_1000_samples, convcnp)))
-    # print(compare((new_joint_1000_samples, new_joint_100_samples)))
-
-    # plot_hist_comparison([new_split_100_samples, new_joint_100_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_100")
-    # print(compare((new_split_100_samples, new_joint_100_samples)))
-
-    # plot_hist_comparison([new_split_1000_samples, new_joint_1000_samples], ["Split (100 samples)", "Joint (100 samples)"], "loglik_comparison_js_1000")
-    # print(compare((new_split_1000_samples, new_joint_1000_samples)))
-
-    with open("_experiments/noised_sawtooth/x1_y3/convcnp/unet/s64_n6_k5/100/eval/100/logliks.json", "r") as f:
-        l_100 = json.load(f)
-    with open("_experiments/noised_sawtooth/x1_y3/convcnp/unet/s64_n6_k5/100/eval/1000/logliks.json", "r") as f:
-        l_1000 = json.load(f)
-
-    plot_hist_comparison_by_context([l_100, l_1000], ["100", "1000"], "100vs1000")
-    print(compare((l_1000, l_100)))
+    # Plot ar_samples comparison
+    for dataset, arch, y_dim in itertools.product(DATASETS, ARCHS, Y_DIMS):
+        with open(f"_experiments/{dataset}/x1_y{y_dim}/convcnp/unet/{arch}/500/eval/100/logliks.json", "r") as f:
+            s100 = json.load(f)
+        with open(f"_experiments/{dataset}/x1_y{y_dim}/convcnp/unet/{arch}/500/eval/1000/logliks.json", "r") as f:
+            s1000 = json.load(f)
+        plot_hist_comparison_by_context([s100, s1000], ["100 AR samples", "1000 AR samples"], f"ar_samp_comp/{dataset}_x1_y{y_dim}_{arch}")
