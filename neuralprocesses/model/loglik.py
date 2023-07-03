@@ -16,7 +16,6 @@ def loglik(
     contexts: list,
     xt,
     yt,
-    # _,
     *,
     num_samples=1,
     batch_size=16,

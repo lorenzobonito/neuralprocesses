@@ -7,7 +7,7 @@ from wbml.experiment import WorkingDirectory
 # rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
 # rc("text", usetex=True)
 
-__all__ = ["plot_training_dynamics"]
+__all__ = ["joint_training_dynamics", "split_training_dynamics"]
 
 def _plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], fpath: str):
 
@@ -30,7 +30,7 @@ def _plot_train_val_curves(train_loglik: List[float], val_loglik: List[float], f
     plt.close()
 
 
-def plot_training_dynamics(wd: WorkingDirectory):
+def joint_training_dynamics(wd: WorkingDirectory):
 
     with open(wd.file("log_train.txt"), "r") as f:
         lines = f.readlines()
@@ -61,3 +61,23 @@ def plot_training_dynamics(wd: WorkingDirectory):
     
     for layer in range(len(train_losses.keys())):
         _plot_train_val_curves(train_losses[layer], val_losses[layer], wd.file(f"images/dynamics/train_val_curves_{layer}.png"))
+
+
+def split_training_dynamics(wd: WorkingDirectory):
+
+    with open(wd.file("log_train.txt"), "r") as f:
+        lines = f.readlines()
+    
+    train_losses = []
+    val_losses = []
+
+    for line in lines:
+        if "Loglik (T)" in line:
+                train_losses.append(float(line.split()[4]))
+        if "Loglik (V)" in line:
+            if line.split()[0] != "|":
+                val_losses.append(float(line.split()[4]))
+            else:
+                val_losses.append(float(line.split()[3]))
+    
+    _plot_train_val_curves(train_losses, val_losses, wd.file(f"images/dynamics/train_val_curves.png"))

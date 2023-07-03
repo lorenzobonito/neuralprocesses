@@ -1,6 +1,5 @@
 import argparse
 import json
-from multiprocessing import Process
 import os
 import sys
 import warnings
@@ -16,31 +15,25 @@ from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 from batch_masking import mask_batch
 from noised_AR_pred import generate_AR_prediction
-from training_dynamics import joint_training_dynamics, split_training_dynamics
+from training_dynamics import joint_training_dynamics
 
 __all__ = ["main"]
 
 warnings.filterwarnings("ignore", category=ToDenseWarning)
     
 
-def train(state, model, opt, objective, gen, *, fix_noise, level_index: int):
+def train(state, model, opt, objective, gen, *, fix_noise):
     """Train for an epoch."""
 
     # Preliminary setup
-    if level_index is not None:
-        split = True
-        vals = []
-    else:
-        split = False
-        levels = tuple([level for level in range(gen.noise_levels+1)])
-        vals = {}
-        for level in levels:
-            vals[level] = []
+    levels = tuple([level for level in range(gen.noise_levels+1)])
+    vals = {}
+    for level in levels:
+        vals[level] = []
     
     for batch in gen.epoch():
-        if not split:
-            level_index = np.random.choice(levels)
-        batch = mask_batch(batch, level_index, split)
+        level_index = np.random.choice(levels)
+        batch = mask_batch(batch, level_index, False)
         state, obj = objective(
             state,
             model,
@@ -49,46 +42,32 @@ def train(state, model, opt, objective, gen, *, fix_noise, level_index: int):
             batch["yt"],
             fix_noise=fix_noise,
         )
-        if split:
-            vals.append(B.to_numpy(obj))
-        else:
-            vals[level_index].append(B.to_numpy(obj))
+        vals[level_index].append(B.to_numpy(obj))
         val = -B.mean(obj)
         opt.zero_grad(set_to_none=True)
         val.backward()
         opt.step()
 
-    if split:
-        vals = B.concat(*vals)
-        out.kv("Loglik (T)", exp.with_err(vals, and_lower=True))
-        return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
-    else:
-        vals = dict((k, B.concat(*v)) for k, v in vals.items())
-        for level in levels:
-            out.kv(f"Loglik (T, {level})", exp.with_err(vals[level], and_lower=True))
-        vals = np.array([B.mean(B.concat(vals[level])) - 1.96 * B.std(B.concat(vals[level])) / B.sqrt(len(B.concat(vals[level]))) for level in levels])
-        return state, vals
+    vals = dict((k, B.concat(*v)) for k, v in vals.items())
+    for level in levels:
+        out.kv(f"Loglik (T, {level})", exp.with_err(vals[level], and_lower=True))
+    vals = np.array([B.mean(B.concat(vals[level])) - 1.96 * B.std(B.concat(vals[level])) / B.sqrt(len(B.concat(vals[level]))) for level in levels])
+    return state, vals
 
 
-def eval(state, model, objective, gen, level_index: int):
+def eval(state, model, objective, gen):
     """Perform evaluation."""
     with torch.no_grad():
 
         # Preliminary setup
-        if level_index is not None:
-            split = True
-            vals = []
-        else:
-            split = False
-            levels = tuple([level for level in range(gen.noise_levels+1)])
-            vals = {}
-            for level in levels:
-                vals[level] = []
-                
+        levels = tuple([level for level in range(gen.noise_levels+1)])
+        vals = {}
+        for level in levels:
+            vals[level] = []
+            
         for batch in gen.epoch():
-            if not split:
-                level_index = np.random.choice(levels)
-            batch = mask_batch(batch, level_index, split)
+            level_index = np.random.choice(levels)
+            batch = mask_batch(batch, level_index, False)
             state, obj = objective(
                 state,
                 model,
@@ -96,22 +75,13 @@ def eval(state, model, objective, gen, level_index: int):
                 batch["xt"],
                 batch["yt"],
             )
-            if split:
-                vals.append(B.to_numpy(obj))
-            else:
-                vals[level_index].append(B.to_numpy(obj))
+            vals[level_index].append(B.to_numpy(obj))
 
-        if split:
-            vals = B.concat(*vals)
-            out.kv("Loglik (V)", exp.with_err(vals, and_lower=True))
-            return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
-        else:
-            vals = dict((k, B.concat(*v)) for k, v in vals.items())
-            for level in levels:
-                out.kv(f"Loglik (V, {level})", exp.with_err(vals[level], and_lower=True))
-            vals = np.array([B.mean(B.concat(vals[level])) - 1.96 * B.std(B.concat(vals[level])) / B.sqrt(len(B.concat(vals[level]))) for level in levels])
-            return state, vals
-
+        vals = dict((k, B.concat(*v)) for k, v in vals.items())
+        for level in levels:
+            out.kv(f"Loglik (V, {level})", exp.with_err(vals[level], and_lower=True))
+        vals = np.array([B.mean(B.concat(vals[level])) - 1.96 * B.std(B.concat(vals[level])) / B.sqrt(len(B.concat(vals[level]))) for level in levels])
+        return state, vals
 
 def main(**kw_args):
     # Setup arguments.
@@ -123,11 +93,6 @@ def main(**kw_args):
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--dim-x", type=int, default=1)
     parser.add_argument("--dim-y", type=int, default=1)
-
-    # Only passed if split model is being trained
-    parser.add_argument("--model-index", type=int, default=None)
-    parser.add_argument("--noise-levels", type=int, default=None)
-
     parser.add_argument("--num-unet-channels", type=int, default=6)
     parser.add_argument("--size-unet-channels", type=int, default=64)
     parser.add_argument("--unet-kernels", type=int, default=5)
@@ -245,37 +210,20 @@ def main(**kw_args):
     # Setup script.
     if not observe:
         out.report_time = True
-    if args.model_index is not None:
-        wd_train = WorkingDirectory(
-            *args.root,
-            *(args.subdir or ()),
-            data_dir,
-            *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
-            "convcnp",
-            *((args.arch,) if hasattr(args, "arch") else ()),
-            f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
-            str(args.epochs),
-            "train",
-            str(args.model_index),
-            log=f"log_train.txt" if not args.evaluate else None,
-            diff=f"diff_train.txt" if not args.evaluate else None,
-            observe=observe,
-        )
-    else:
-        wd_train = WorkingDirectory(
-            *args.root,
-            *(args.subdir or ()),
-            data_dir,
-            *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
-            "convcnp",
-            *((args.arch,) if hasattr(args, "arch") else ()),
-            f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
-            str(args.epochs),
-            "train",
-            log=f"log_train.txt" if not args.evaluate else None,
-            diff=f"diff_train.txt" if not args.evaluate else None,
-            observe=observe,
-        )
+    wd_train = WorkingDirectory(
+        *args.root,
+        *(args.subdir or ()),
+        data_dir,
+        *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
+        "convcnp",
+        *((args.arch,) if hasattr(args, "arch") else ()),
+        f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+        str(args.epochs),
+        "train",
+        log=f"log_train.txt" if not args.evaluate else None,
+        diff=f"diff_train.txt" if not args.evaluate else None,
+        observe=observe,
+    )
 
     # Determine which device to use. Try to use a GPU if one is available.
     if args.device:
@@ -292,10 +240,6 @@ def main(**kw_args):
     state = B.create_random_state(torch.float32, seed=0)
 
     # General config.
-    if args.dim_y == 1:
-        noise_levels = args.noise_levels
-    else:
-        noise_levels = args.dim_y - 1
     config = {
         "default": {
             "epochs": None,
@@ -314,8 +258,8 @@ def main(**kw_args):
         "num_layers": 6,
         "unet_channels": (args.size_unet_channels,) * args.num_unet_channels,
         "unet_kernels": args.unet_kernels,
-        # "unet_strides": (1,) + (2,) * (args.num_unet_channels-1),
-        "unet_strides": (2,) * (args.num_unet_channels),
+        "unet_strides": (1,) + (2,) * (args.num_unet_channels-1),
+        # "unet_strides": (2,) * (args.num_unet_channels),
         "conv_channels": 64,
         "encoder_scales": None,
         "fullconvgnp_kernel_factor": 2,
@@ -325,7 +269,7 @@ def main(**kw_args):
         # the CNN architecture. We therefore set it to 64.
         "num_basis_functions": 64,
         "eeg_mode": args.eeg_mode,
-        "noise_levels": noise_levels,
+        "noise_levels": args.dim_y - 1,
     }
 
     # Setup data generators for training and for evaluation.
@@ -365,7 +309,7 @@ def main(**kw_args):
         model = nps.construct_convgnp(
             points_per_unit=config["points_per_unit"],
             dim_x=config["dim_x"],
-            dim_yc=(1,) * (noise_levels+1),
+            dim_yc=(1,) * config["dim_y"],
             dim_yt=config["dim_y"],
             likelihood="het",
             conv_arch=args.arch,
@@ -411,6 +355,17 @@ def main(**kw_args):
         num_samples=args.num_samples,
         normalise=not args.unnormalised,
     )
+    # objectives_eval = [
+    #     (
+    #         "Loglik",
+    #         partial(
+    #             nps.loglik,
+    #             num_samples=args.evaluate_num_samples,
+    #             batch_size=args.evaluate_batch_size,
+    #             normalise=not args.unnormalised,
+    #         ),
+    #     )
+    # ]
 
     # See if the point was to just load everything.
     if args.load:
@@ -500,11 +455,7 @@ def main(**kw_args):
             model.load_state_dict(d_last["weights"])
             best_eval_lik = d_best["objective"]
         else:
-            if args.model_index is not None:
-                # Split model
-                best_eval_lik = -np.inf
-            else:
-                best_eval_lik = np.ones((1, args.dim_y))*-np.inf
+            best_eval_lik = np.ones((1, args.dim_y))*-np.inf
 
         # Setup training loop.
         opt = torch.optim.Adam(model.parameters(), args.rate)
@@ -542,11 +493,10 @@ def main(**kw_args):
                     objective,
                     gen_train,
                     fix_noise=fix_noise,
-                    level_index=args.model_index
                 )
 
                 # The epoch is done. Now evaluate.
-                state, vals = eval(state, model, objective_cv, gen_cv(), level_index=args.model_index)
+                state, vals = eval(state, model, objective_cv, gen_cv())
 
                 # Save current model.
                 torch.save(
@@ -579,44 +529,20 @@ def main(**kw_args):
                 # Visualise a few predictions by the model every 10 epochs.
                 if i % 10 == 0 or i == args.epochs-1:
                     gen = gen_cv()
-                    if args.model_index is not None:
-                        for j in range(5):
-                            exp.visualise_noised_split(
-                                model,
-                                gen,
-                                path=wd_train.file(f"images/outputs/epoch-{i + 1:03d}-{j + 1}.pdf"),
-                                config=config,
-                                model_index=args.model_index
-                            )
-                    else:
-                        for j in range(5):
-                            exp.visualise_noised_joint(
-                                model,
-                                gen,
-                                path=wd_train.file(f"images/outputs/epoch-{i + 1:03d}-{j + 1}.pdf"),
-                                config=config,
-                            )
+                    for j in range(5):
+                        exp.visualise_noised_1d(
+                            model,
+                            gen,
+                            path=wd_train.file(f"images/outputs/epoch-{i + 1:03d}-{j + 1}.pdf"),
+                            config=config,
+                        )
             
         # Plot training dynamics
         os.makedirs(os.path.join(wd_train.file(), "images", "dynamics"), exist_ok=True)
-        if args.model_index is not None:
-            split_training_dynamics(wd_train)
-        else:
-            joint_training_dynamics(wd_train)
+        joint_training_dynamics(wd_train)
 
 
 if __name__ == "__main__":
-
-    # For joint model, set dim_y = LEVELS.
-    # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn.
-
-    LEVELS = 3
-    procs = []
-    for index in range(LEVELS):
-        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":300, "noise_levels":LEVELS-1, "model_index":index})
-        procs.append(proc)
-        proc.start()
-    for proc in procs:
-        proc.join()
-
-    # main(data="noised_sawtooth", dim_y=3, epochs=300)
+    # main(data="noised_sawtooth", dim_y=6, epochs=500, evaluate=True, ar_samples=1000, gpu=1)
+    # main(data="noised_sawtooth", dim_y=6, epochs=500, num_unet_channels=10, size_unet_channels=70, evaluate=True, ar_samples=1000, gpu=1)
+    main(data="noised_sawtooth", dim_y=6, epochs=500, num_unet_channels=12, size_unet_channels=80, evaluate=True, ar_samples=1000, gpu=1)

@@ -5,19 +5,15 @@ import stheno
 import torch
 from wbml.plot import tweak
 
-from batch_masking import mask_contexts
+from batch_masking import mask_batch, mask_contexts
 
-__all__ = ["visualise", "visualise_noised_1d", "visualise_split"]
+__all__ = ["visualise", "visualise_noised_joint", "visualise_noised_split"]
 
 
-def visualise_split(model, gen, *, path, config, model_index, predict=nps.predict):
+def visualise_noised_split(model, gen, *, path, config, model_index, predict=nps.predict):
 
-    # batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
-    # gen.batch_size = 1
-    batch = gen.generate_batch()
-    batch["contexts"] = mask_contexts(batch["contexts"], model_index)
-    batch["xt"] = batch["xt"][model_index][0]
-    batch["yt"] = batch["yt"][model_index]
+    batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
+    batch = mask_batch(batch, model_index, True)
 
     try:
         plot_config = config["plot"][1]
@@ -30,66 +26,55 @@ def visualise_split(model, gen, *, path, config, model_index, predict=nps.predic
 
     # Predict with model.
     with torch.no_grad():
-        mean, var, samples, _ = predict(
+        mean, var, *_ = predict(
             model,
             batch["contexts"],
-            nps.AggregateInput(
-                *((x[None, None, :], i) for i in range(config["dim_y"]))
-            ),
+            nps.AggregateInput((x[None, None, :], 0)),
         )
 
-    plt.figure(figsize=(8, 6 * config["dim_y"]))
+    plt.figure(figsize=(8, 6))
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
 
-    for i in range(config["dim_y"]):
-        plt.subplot(config["dim_y"], 1, 1 + i)
+    plt.scatter(batch["contexts"][0][0].squeeze(0), batch["contexts"][0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
+    for j in range(config["noise_levels"]+1):
+        if j>model_index:
+            plt.scatter(batch["contexts"][j][0].squeeze(0), batch["contexts"][j][1].squeeze(0), label=f"Auxiliary Context {j}", style="train", marker="^", c=colors[j-1], s=10)
 
-        plt.scatter(batch["contexts"][0][0].squeeze(0), batch["contexts"][0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
-        if batch["contexts"][1][0].squeeze(0).numel() != 0:
-            plt.scatter(batch["contexts"][1][0].squeeze(0), batch["contexts"][1][1].squeeze(0), label="Auxiliary Context 1", style="train", marker="^", c="tab:red", s=10)
-        if batch["contexts"][2][0].squeeze(0).numel() != 0:
-            plt.scatter(batch["contexts"][2][0].squeeze(0), batch["contexts"][2][1].squeeze(0), label="Auxiliary Context 2", style="train", marker="^", c="tab:green", s=10)
+    plt.scatter(
+        batch["xt"][0][0],
+        batch["yt"][0],
+        label="Target",
+        style="test",
+        s=20,
+    )
 
-        plt.scatter(
-            batch["xt"],
-            batch["yt"],
-            label="Target",
-            style="test",
-            s=20,
-        )
+    # Plot prediction.
+    err = 1.96 * B.sqrt(var[0][0, 0])
+    plt.plot(
+        x,
+        mean[0][0, 0],
+        label="Prediction",
+        style="pred",
+    )
+    plt.fill_between(
+        x,
+        mean[0][0, 0] - err,
+        mean[0][0, 0] + err,
+        style="pred",
+    )
 
-        # Plot prediction.
-        err = 1.96 * B.sqrt(var[i][0, 0])
-        plt.plot(
-            x,
-            mean[i][0, 0],
-            label="Prediction",
-            style="pred",
-        )
-        plt.fill_between(
-            x,
-            mean[i][0, 0] - err,
-            mean[i][0, 0] + err,
-            style="pred",
-        )
-        plt.plot(
-            x,
-            B.transpose(samples[i][:10, 0, 0]),
-            style="pred",
-            ls="-",
-            lw=0.5,
-        )
+    for x_axvline in plot_config["axvline"]:
+        plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
 
-        for x_axvline in plot_config["axvline"]:
-            plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
-
-        plt.xlim(B.min(x), B.max(x))
-        tweak()
+    plt.xlim(B.min(x), B.max(x))
+    tweak()
 
     plt.savefig(path)
     plt.close()
 
 
-def visualise_noised_1d(model, gen, *, path, config, predict=nps.predict):
+def visualise_noised_joint(model, gen, *, path, config, predict=nps.predict):
+
     batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
 
     try:
@@ -145,13 +130,6 @@ def visualise_noised_1d(model, gen, *, path, config, predict=nps.predict):
             mean[i][0, 0] + err,
             style="pred",
         )
-        # plt.plot(
-        #     x,
-        #     B.transpose(samples[i][:10, 0, 0]),
-        #     style="pred",
-        #     ls="-",
-        #     lw=0.5,
-        # )
 
         for x_axvline in plot_config["axvline"]:
             plt.axvline(x_axvline, c="k", ls="--", lw=0.5)

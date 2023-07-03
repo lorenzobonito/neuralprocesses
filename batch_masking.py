@@ -54,11 +54,17 @@ def mask_yt(in_yt, level_index):
     return yt
 
 
-def mask_batch(in_batch, level_index):
+def mask_batch(in_batch, level_index, split):
 
     batch = in_batch.copy()
-    batch["contexts"] = mask_contexts(batch["contexts"], level_index)
-    batch["xt"] = mask_xt(batch["xt"], level_index)
-    batch["yt"] = mask_yt(batch["yt"], level_index)
+
+    if split:
+        batch["contexts"] = mask_contexts(batch["contexts"], level_index)
+        batch["xt"] = AggregateInput((batch["xt"][level_index][0], 0))
+        batch["yt"] = Aggregate(batch["yt"][level_index])
+    else:
+        batch["contexts"] = mask_contexts(batch["contexts"], level_index)
+        batch["xt"] = mask_xt(batch["xt"], level_index)
+        batch["yt"] = mask_yt(batch["yt"], level_index)
 
     return batch
