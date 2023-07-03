@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 import json
 from multiprocessing import Process
 import os
@@ -15,8 +16,8 @@ import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 from batch_masking import mask_batch
-from noised_AR_pred import generate_AR_prediction
-from training_dynamics import joint_training_dynamics, split_training_dynamics
+from noised_AR_pred import split_AR_prediction, joint_AR_prediction
+from training_dynamics import split_training_dynamics, joint_training_dynamics
 
 __all__ = ["main"]
 
@@ -245,7 +246,7 @@ def main(**kw_args):
     # Setup script.
     if not observe:
         out.report_time = True
-    if args.model_index is not None:
+    if args.model_index != -1:
         wd_train = WorkingDirectory(
             *args.root,
             *(args.subdir or ()),
@@ -256,22 +257,7 @@ def main(**kw_args):
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             str(args.epochs),
             "train",
-            str(args.model_index),
-            log=f"log_train.txt" if not args.evaluate else None,
-            diff=f"diff_train.txt" if not args.evaluate else None,
-            observe=observe,
-        )
-    else:
-        wd_train = WorkingDirectory(
-            *args.root,
-            *(args.subdir or ()),
-            data_dir,
-            *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
-            "convcnp",
-            *((args.arch,) if hasattr(args, "arch") else ()),
-            f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
-            str(args.epochs),
-            "train",
+            str(args.model_index) if args.model_index is not None else "",
             log=f"log_train.txt" if not args.evaluate else None,
             diff=f"diff_train.txt" if not args.evaluate else None,
             observe=observe,
@@ -465,9 +451,49 @@ def main(**kw_args):
             name = "model-last.torch"
         else:
             name = "model-best.torch"
-        model.load_state_dict(
-            patch_model(torch.load(wd_train.file(name), map_location=device))["weights"]
-        )
+        if args.model_index is not None:
+            if args.model_index != -1:
+                raise ValueError("model_index parameter must be set to -1 when evaluating.")
+            models = []
+            for index in range(args.noise_levels+1):
+                # ConvCNP
+                model = nps.construct_convgnp(
+                    points_per_unit=config["points_per_unit"],
+                    dim_x=config["dim_x"],
+                    dim_yc=(1,) * (noise_levels+1),
+                    dim_yt=config["dim_y"],
+                    likelihood="het",
+                    conv_arch=args.arch,
+                    unet_channels=config["unet_channels"],
+                    unet_kernels=config["unet_kernels"],
+                    unet_strides=config["unet_strides"],
+                    conv_channels=config["conv_channels"],
+                    conv_layers=config["num_layers"],
+                    conv_receptive_field=config["conv_receptive_field"],
+                    margin=config["margin"],
+                    encoder_scales=config["encoder_scales"],
+                    transform=config["transform"],
+                )
+                wd_load = WorkingDirectory(
+                    *args.root,
+                    *(args.subdir or ()),
+                    data_dir,
+                    *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
+                    "convcnp",
+                    *((args.arch,) if hasattr(args, "arch") else ()),
+                    f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+                    str(args.epochs),
+                    "train",
+                    str(index),
+                    log=f"log_train.txt" if not args.evaluate else None,
+                    diff=f"diff_train.txt" if not args.evaluate else None,
+                    observe=observe,
+                )
+                model.load_state_dict(patch_model(torch.load(wd_load.file(name), map_location=device))["weights"])
+                model.to(device)
+                models.append(model)
+        else:
+            model.load_state_dict(patch_model(torch.load(wd_train.file(name), map_location=device))["weights"])
 
         # Load different context sets
         dataset = torch.load(f"benchmark_datasets/benchmark_dataset_{args.data}_{args.dim_y}_layers.pt", map_location=device)
@@ -476,7 +502,10 @@ def main(**kw_args):
         logliks = []
         json_data = {}
         for idx, batch in enumerate(dataset):
-            state, loglik = generate_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
+            if args.model_index is not None:
+                state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
+            else:
+                state, loglik = joint_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[idx] = (batch["contexts"][0][0].numel(), loglik.item())
             out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *loglik))
@@ -608,15 +637,16 @@ def main(**kw_args):
 if __name__ == "__main__":
 
     # For joint model, set dim_y = LEVELS.
-    # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn.
+    # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
     LEVELS = 3
-    procs = []
-    for index in range(LEVELS):
-        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":300, "noise_levels":LEVELS-1, "model_index":index})
-        procs.append(proc)
-        proc.start()
-    for proc in procs:
-        proc.join()
+    # procs = []
+    # for index in range(LEVELS):
+    #     proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":index})
+    #     procs.append(proc)
+    #     proc.start()
+    # for proc in procs:
+    #     proc.join()
+    main(data="noised_sawtooth", epochs=298, noise_levels=LEVELS-1, evaluate=True, model_index=-1, ar_samples=1000)
 
-    # main(data="noised_sawtooth", dim_y=3, epochs=300)
+    # main(data="noised_sawtooth", dim_y=3, epochs=10)
