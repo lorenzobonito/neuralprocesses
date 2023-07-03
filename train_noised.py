@@ -651,7 +651,7 @@ if __name__ == "__main__":
 
     eval_procs = []
     for ar_samples in [100, 1000]:
-        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":-1, "evaluate":True, "ar_samples":100})
+        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":-1, "evaluate":True, "ar_samples":ar_samples})
         eval_procs.append(proc)
         proc.start()
     for proc in eval_procs:
