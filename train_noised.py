@@ -640,13 +640,21 @@ if __name__ == "__main__":
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
     LEVELS = 3
-    # procs = []
-    # for index in range(LEVELS):
-    #     proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":index})
-    #     procs.append(proc)
-    #     proc.start()
-    # for proc in procs:
-    #     proc.join()
-    main(data="noised_sawtooth", epochs=298, noise_levels=LEVELS-1, evaluate=True, model_index=-1, ar_samples=1000)
+
+    train_procs = []
+    for index in range(LEVELS):
+        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":index, "batch_size":128})
+        train_procs.append(proc)
+        proc.start()
+    for proc in train_procs:
+        proc.join()
+
+    eval_procs = []
+    for ar_samples in [100, 1000]:
+        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":-1, "evaluate":True, "ar_samples":100})
+        eval_procs.append(proc)
+        proc.start()
+    for proc in eval_procs:
+        proc.join()
 
     # main(data="noised_sawtooth", dim_y=3, epochs=10)
