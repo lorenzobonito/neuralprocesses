@@ -251,11 +251,12 @@ def main(**kw_args):
             *args.root,
             *(args.subdir or ()),
             data_dir,
-            *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
+            "split" if args.model_index is not None else "joint",
+            f"{args.noise_levels+1}_layers" if args.model_index is not None else f"{args.dim_y}_layers",
             "convcnp",
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
-            str(args.epochs),
+            f"{args.epochs}_epochs",
             "train",
             str(args.model_index) if args.model_index is not None else "",
             log=f"log_train.txt" if not args.evaluate else None,
@@ -418,11 +419,12 @@ def main(**kw_args):
             *args.root,
             *(args.subdir or ()),
             data_dir,
-            *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
+            "split" if args.model_index is not None else "joint",
+            f"{args.noise_levels+1}_layers" if args.model_index is not None else f"{args.dim_y}_layers",
             "convcnp",
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
-            str(args.epochs),
+            f"{args.epochs}_epochs",
             "eval",
             str(args.ar_samples),
             log=f"log_eval.txt",
@@ -478,11 +480,12 @@ def main(**kw_args):
                     *args.root,
                     *(args.subdir or ()),
                     data_dir,
-                    *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
+                    "split" if args.model_index is not None else "joint",
+                    f"{args.noise_levels+1}_layers" if args.model_index is not None else f"{args.dim_y}_layers",
                     "convcnp",
                     *((args.arch,) if hasattr(args, "arch") else ()),
                     f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
-                    str(args.epochs),
+                    f"{args.epochs}_epochs",
                     "train",
                     str(index),
                     log=f"log_train.txt" if not args.evaluate else None,
@@ -643,7 +646,14 @@ if __name__ == "__main__":
 
     train_procs = []
     for index in range(LEVELS):
-        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":index, "batch_size":128})
+        proc = Process(target=main, 
+                       kwargs={"data":"noised_sawtooth",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
+                               "model_index":index,
+                               "num_unet_channels":12,
+                               "size_unet_channels":80,
+                               "gpu":1})
         train_procs.append(proc)
         proc.start()
     for proc in train_procs:
@@ -651,7 +661,16 @@ if __name__ == "__main__":
 
     eval_procs = []
     for ar_samples in [100, 1000]:
-        proc = Process(target=main, kwargs={"data":"noised_sawtooth", "epochs":10, "noise_levels":LEVELS-1, "model_index":-1, "evaluate":True, "ar_samples":ar_samples})
+        proc = Process(target=main,
+                       kwargs={"data":"noised_sawtooth",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
+                               "model_index":-1,
+                               "evaluate":True,
+                               "ar_samples":ar_samples,
+                               "num_unet_channels":12,
+                               "size_unet_channels":80,
+                               "gpu":1})
         eval_procs.append(proc)
         proc.start()
     for proc in eval_procs:
