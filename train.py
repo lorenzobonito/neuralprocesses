@@ -1,10 +1,8 @@
 import argparse
 import os
 import sys
-import time
 import warnings
 from functools import partial
-import json
 
 import experiment as exp
 import lab as B
@@ -289,7 +287,8 @@ def main(**kw_args):
         "num_heads": 8,
         "num_layers": 6,
         "unet_channels": (64,) * 6,
-        "unet_strides": (1,) + (2,) * 5,
+        # "unet_strides": (1,) + (2,) * 5,
+        "unet_strides": (2,) * 6,
         "conv_channels": 64,
         "encoder_scales": None,
         "fullconvgnp_kernel_factor": 2,
@@ -604,16 +603,16 @@ def main(**kw_args):
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
 
-        if not args.ar or args.also_ar:
-            # Make some plots.
-            gen = gen_cv()
-            for i in range(args.evaluate_num_plots):
-                exp.visualise(
-                    model,
-                    gen,
-                    path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
-                    config=config,
-                )
+        # if not args.ar or args.also_ar:
+        #     # Make some plots.
+        #     gen = gen_cv()
+        #     for i in range(args.evaluate_num_plots):
+        #         exp.visualise(
+        #             model,
+        #             gen,
+        #             path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
+        #             config=config,
+        #         )
 
         #     # For every objective and evaluation generator, do the evaluation.
         #     for objecive_name, objective_eval in objectives_eval:
@@ -650,38 +649,6 @@ def main(**kw_args):
         #                     ),
         #                     gen,
         #                 )
-
-        gen.batch_size = 1
-
-        # Evaluate different context sets
-        
-        import pickle
-        with open("datasets_joint.pickle","rb") as f:
-            datasets = pickle.load(f)
-        
-        logliks = []
-        json_data = {}
-        j = 0
-        for batch in datasets:
-            state, loglik = objective(
-                state,
-                model,
-                [batch["contexts"][0]],
-                batch["xt"][0][0],
-                batch["yt"][0],
-                fix_noise=False,
-            )
-            logliks.append(loglik)
-            json_data[j] = (loglik.item(), batch["contexts"][0][0].numel())
-            j += 1
-
-        logliks = B.concat(*logliks)
-        print(logliks)
-        out.kv("Loglik (E)", exp.with_err(logliks, and_lower=True))
-
-        with open("logliks_convcnp.json", "w", encoding="utf-8") as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=4)
-
 
     else:
         # Perform training. First, check if we want to resume training.
@@ -775,4 +742,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="sawtooth", epochs=100, model="convcnp", evaluate=True)
+    main(data="sawtooth", epochs=500)
