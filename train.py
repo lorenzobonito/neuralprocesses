@@ -85,6 +85,9 @@ def main(**kw_args):
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--dim-x", type=int, default=1)
     parser.add_argument("--dim-y", type=int, default=1)
+    parser.add_argument("--num-unet-channels", type=int, default=6)
+    parser.add_argument("--size-unet-channels", type=int, default=64)
+    parser.add_argument("--unet-kernels", type=int, default=5)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--rate", type=float)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -289,9 +292,10 @@ def main(**kw_args):
         "enc_same": False,
         "num_heads": 8,
         "num_layers": 6,
-        "unet_channels": (64,) * 6,
-        # "unet_strides": (1,) + (2,) * 5,
-        "unet_strides": (2,) * 6,
+        "unet_channels": (args.size_unet_channels,) * args.num_unet_channels,
+        "unet_kernels": args.unet_kernels,
+        # "unet_strides": (1,) + (2,) * (args.num_unet_channels-1),
+        "unet_strides": (2,) * (args.num_unet_channels),
         "conv_channels": 64,
         "encoder_scales": None,
         "fullconvgnp_kernel_factor": 2,
@@ -338,6 +342,7 @@ def main(**kw_args):
         # See if the experiment constructed the particular flavour of the model already.
         model = config["model"]
     else:
+        # ConvCNP
         model = nps.construct_convgnp(
             points_per_unit=config["points_per_unit"],
             dim_x=config["dim_x"],
@@ -346,6 +351,7 @@ def main(**kw_args):
             likelihood="het",
             conv_arch=args.arch,
             unet_channels=config["unet_channels"],
+            unet_kernels=config["unet_kernels"],
             unet_strides=config["unet_strides"],
             conv_channels=config["conv_channels"],
             conv_layers=config["num_layers"],
@@ -622,4 +628,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="sawtooth", epochs=500, evaluate=True)
+    # main(data="sawtooth", epochs=500)
+    # main(data="sawtooth", epochs=500, num_unet_channels=10, size_unet_channels=70)
+    main(data="sawtooth", epochs=500, num_unet_channels=12, size_unet_channels=80)
