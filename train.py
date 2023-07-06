@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 import warnings
@@ -603,6 +604,28 @@ def main(**kw_args):
             patch_model(torch.load(wd.file(name), map_location=device))["weights"]
         )
 
+        # Load different context sets
+        dataset = torch.load(f"benchmark_datasets/benchmark_dataset_noised_sawtooth_{args.dim_y}_layers.pt", map_location=device)
+        
+        # Evaluate model predictions over context sets
+        logliks = []
+        json_data = {}
+        for idx, batch in enumerate(dataset):
+            true_y0t = batch["yt"]
+            float64 = B.promote_dtypes(B.dtype_float(true_y0t), np.float64)
+            state, pred = model(state, batch["contexts"], batch["xt"])
+            logpdfs = pred.logpdf(B.cast(float64, true_y0t))
+            logpdfs = logpdfs / B.cast(float64, nps.num_data(nps.AggregateInput(batch["xt"][0]), nps.Aggregate(batch["yt"][0])))
+            logliks.append(logpdfs)
+            json_data[idx] = (batch["contexts"][0][0].numel(), logpdfs.item())
+            out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *logpdfs))
+            with open(wd.file("logliks.json"), "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=4)
+
+        logliks = B.concat(*logliks)
+        out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
+
+
         # if not args.ar or args.also_ar:
         #     # Make some plots.
         #     gen = gen_cv()
@@ -742,4 +765,4 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    main(data="sawtooth", epochs=500)
+    main(data="sawtooth", epochs=500, evaluate=True, gpu=1)

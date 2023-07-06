@@ -679,3 +679,4 @@ if __name__ == "__main__":
     # main(data="noised_sawtooth", dim_y=3, epochs=500)
     # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=10, size_unet_channels=70)
     main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=12, size_unet_channels=80)
+    # main(data="noised_sawtooth", dim_y=1, epochs=500, noise_levels=0, evaluate=True, ar_samples=1000)
