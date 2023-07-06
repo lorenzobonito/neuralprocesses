@@ -243,16 +243,18 @@ def main(**kw_args):
     # Setup script.
     if not observe:
         out.report_time = True
-    wd = WorkingDirectory(
+    wd_train = WorkingDirectory(
         *args.root,
         *(args.subdir or ()),
         data_dir,
-        *((f"x{args.dim_x}_y{args.dim_y}",) if hasattr(args, "dim_x") else ()),
-        args.model,
+        "original_model",
+        "convcnp",
         *((args.arch,) if hasattr(args, "arch") else ()),
-        args.objective,
-        log=f"log{suffix}.txt",
-        diff=f"diff{suffix}.txt",
+        f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+        f"{args.epochs}_epochs",
+        "train",
+        log=f"log_train.txt" if not args.evaluate else None,
+        diff=f"diff_train.txt" if not args.evaluate else None,
         observe=observe,
     )
 
@@ -320,8 +322,8 @@ def main(**kw_args):
 
     # Check if a run has completed.
     if args.check_completed:
-        if os.path.exists(wd.file("model-last.torch")):
-            d = patch_model(torch.load(wd.file("model-last.torch"), map_location="cpu"))
+        if os.path.exists(wd_train.file("model-last.torch")):
+            d = patch_model(torch.load(wd_train.file("model-last.torch"), map_location="cpu"))
             if d["epoch"] >= args.epochs - 1:
                 out.out("Completed!")
                 sys.exit(0)
@@ -336,166 +338,22 @@ def main(**kw_args):
         # See if the experiment constructed the particular flavour of the model already.
         model = config["model"]
     else:
-        # Construct the model.
-        if args.model == "cnp":
-            model = nps.construct_gnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                transform=config["transform"],
-            )
-        elif args.model == "gnp":
-            model = nps.construct_gnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="lowrank",
-                num_basis_functions=config["num_basis_functions"],
-                transform=config["transform"],
-            )
-        elif args.model == "np":
-            model = nps.construct_gnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                dim_lv=config["dim_embedding"],
-                transform=config["transform"],
-            )
-        elif args.model == "acnp":
-            model = nps.construct_agnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_heads=config["num_heads"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                transform=config["transform"],
-            )
-        elif args.model == "agnp":
-            model = nps.construct_agnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_heads=config["num_heads"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="lowrank",
-                num_basis_functions=config["num_basis_functions"],
-                transform=config["transform"],
-            )
-        elif args.model == "anp":
-            model = nps.construct_agnp(
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                dim_embedding=config["dim_embedding"],
-                enc_same=config["enc_same"],
-                num_heads=config["num_heads"],
-                num_dec_layers=config["num_layers"],
-                width=config["width"],
-                likelihood="het",
-                dim_lv=config["dim_embedding"],
-                transform=config["transform"],
-            )
-        elif args.model == "convcnp":
-            model = nps.construct_convgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                likelihood="het",
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        elif args.model == "convgnp":
-            model = nps.construct_convgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                likelihood="lowrank",
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                num_basis_functions=config["num_basis_functions"],
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        elif args.model == "convnp":
-            if config["dim_x"] == 2:
-                # Reduce the number of channels in the conv. architectures by a factor
-                # $\sqrt(2)$. This keeps the runtime in check and reduces the parameters
-                # of the ConvNP to the number of parameters of the ConvCNP.
-                config["unet_channels"] = tuple(
-                    int(c / 2**0.5) for c in config["unet_channels"]
-                )
-                config["dws_channels"] = int(config["dws_channels"] / 2**0.5)
-            model = nps.construct_convgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                likelihood="het",
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                dim_lv=16,
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        elif args.model == "fullconvgnp":
-            model = nps.construct_fullconvgnp(
-                points_per_unit=config["points_per_unit"],
-                dim_x=config["dim_x"],
-                dim_yc=(1,) * config["dim_y"],
-                dim_yt=config["dim_y"],
-                conv_arch=args.arch,
-                unet_channels=config["unet_channels"],
-                unet_strides=config["unet_strides"],
-                conv_channels=config["conv_channels"],
-                conv_layers=config["num_layers"],
-                conv_receptive_field=config["conv_receptive_field"],
-                kernel_factor=config["fullconvgnp_kernel_factor"],
-                margin=config["margin"],
-                encoder_scales=config["encoder_scales"],
-                transform=config["transform"],
-            )
-        else:
-            raise ValueError(f'Invalid model "{args.model}".')
+        model = nps.construct_convgnp(
+            points_per_unit=config["points_per_unit"],
+            dim_x=config["dim_x"],
+            dim_yc=(1,) * config["dim_y"],
+            dim_yt=config["dim_y"],
+            likelihood="het",
+            conv_arch=args.arch,
+            unet_channels=config["unet_channels"],
+            unet_strides=config["unet_strides"],
+            conv_channels=config["conv_channels"],
+            conv_layers=config["num_layers"],
+            conv_receptive_field=config["conv_receptive_field"],
+            margin=config["margin"],
+            encoder_scales=config["encoder_scales"],
+            transform=config["transform"],
+        )
 
     # Settings specific for the model:
     if config["fix_noise"] is None:
@@ -583,7 +441,7 @@ def main(**kw_args):
     # See if the point was to just load everything.
     if args.load:
         return {
-            "wd": wd,
+            "wd": wd_train,
             "gen_train": gen_train,
             "gen_cv": gen_cv,
             "gens_eval": gens_eval,
@@ -595,97 +453,82 @@ def main(**kw_args):
         exit()
 
     if args.evaluate:
+
+        wd_eval = WorkingDirectory(
+            *args.root,
+            *(args.subdir or ()),
+            data_dir,
+            "original_model",
+            "convcnp",
+            *((args.arch,) if hasattr(args, "arch") else ()),
+            f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+            f"{args.epochs}_epochs",
+            "eval",
+            log=f"log_train.txt" if not args.evaluate else None,
+            diff=f"diff_train.txt" if not args.evaluate else None,
+            observe=observe,
+        )
+
+        wd_eval = WorkingDirectory(
+            *args.root,
+            *(args.subdir or ()),
+            data_dir,
+            "original_model",
+            "convcnp",
+            *((args.arch,) if hasattr(args, "arch") else ()),
+            f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+            f"{args.epochs}_epochs",
+            "eval",
+            log=f"log_eval.txt",
+            diff=f"diff_eval.txt",
+            observe=observe,
+        )
+
         # Perform evaluation.
         if args.evaluate_last:
             name = "model-last.torch"
         else:
             name = "model-best.torch"
         model.load_state_dict(
-            patch_model(torch.load(wd.file(name), map_location=device))["weights"]
+            patch_model(torch.load(wd_train.file(name), map_location=device))["weights"]
         )
 
         # Load different context sets
         dataset = torch.load(f"benchmark_datasets/benchmark_dataset_noised_sawtooth_{args.dim_y}_layers.pt", map_location=device)
         
-        # # Evaluate model predictions over context sets (regular)
-        # logliks = []
-        # json_data = {}
-        # for idx, batch in enumerate(dataset):
-        #     true_y0t = batch["yt"]
-        #     float64 = B.promote_dtypes(B.dtype_float(true_y0t), np.float64)
-        #     state, pred = model(state, batch["contexts"], batch["xt"])
-        #     logpdfs = pred.logpdf(B.cast(float64, true_y0t))
-        #     logpdfs = logpdfs / B.cast(float64, nps.num_data(nps.AggregateInput(batch["xt"][0]), nps.Aggregate(batch["yt"][0])))
-        #     logliks.append(logpdfs)
-        #     json_data[idx] = (batch["contexts"][0][0].numel(), logpdfs.item())
-        #     out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *logpdfs))
-        #     with open(wd.file("logliks_regular.json"), "w", encoding="utf-8") as f:
-        #         json.dump(json_data, f, ensure_ascii=False, indent=4)
-        # logliks = B.concat(*logliks)
-        # out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
+        # UP TO HERE OK
 
-        # Evaluate model predictions over context sets (AR)
+        # Evaluate model predictions over context sets (regular)
         logliks = []
         json_data = {}
         for idx, batch in enumerate(dataset):
-            if idx <= 290:
-                continue
-            logpdf = nps.ar_loglik(state, model, batch["contexts"], batch["xt"], batch["yt"], normalise=True)[1]
-            logliks.append(logpdf)
-            json_data[idx] = (batch["contexts"][0][0].numel(), logpdf.item())
-            out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *logpdf))
-            with open(wd.file("logliks_AR.json"), "w", encoding="utf-8") as f:
+            true_y0t = batch["yt"]
+            float64 = B.promote_dtypes(B.dtype_float(true_y0t), np.float64)
+            state, pred = model(state, batch["contexts"], batch["xt"])
+            logpdfs = pred.logpdf(B.cast(float64, true_y0t))
+            logpdfs = logpdfs / B.cast(float64, nps.num_data(nps.AggregateInput(batch["xt"][0]), nps.Aggregate(batch["yt"][0])))
+            logliks.append(logpdfs)
+            json_data[idx] = (batch["contexts"][0][0].numel(), logpdfs.item())
+            out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *logpdfs))
+            with open(wd_eval.file("logliks_regular.json"), "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
         logliks = B.concat(*logliks)
         out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
 
-
-        # if not args.ar or args.also_ar:
-        #     # Make some plots.
-        #     gen = gen_cv()
-        #     for i in range(args.evaluate_num_plots):
-        #         exp.visualise(
-        #             model,
-        #             gen,
-        #             path=wd.file(f"evaluate-{i + 1:03d}.pdf"),
-        #             config=config,
-        #         )
-
-        #     # For every objective and evaluation generator, do the evaluation.
-        #     for objecive_name, objective_eval in objectives_eval:
-        #         with out.Section(objecive_name):
-        #             for gen_name, gen in gens_eval():
-        #                 with out.Section(gen_name.capitalize()):
-        #                     state, _ = eval(state, model, objective_eval, gen)
-
-        # # Always run AR evaluation for the conditional models.
-        # if not args.no_ar and (
-        #     args.model in {"cnp", "acnp", "convcnp"} or args.ar or args.also_ar
-        # ):
-        #     # Make some plots.
-        #     gen = gen_cv()
-        #     for i in range(args.evaluate_num_plots):
-        #         exp.visualise(
-        #             model,
-        #             gen,
-        #             path=wd.file(f"evaluate-ar-{i + 1:03d}.pdf"),
-        #             config=config,
-        #             predict=nps.ar_predict,
-        #         )
-
-        #     with out.Section("AR"):
-        #         for name, gen in gens_eval():
-        #             with out.Section(name.capitalize()):
-        #                 state, _ = eval(
-        #                     state,
-        #                     model,
-        #                     partial(
-        #                         nps.ar_loglik,
-        #                         order="random",
-        #                         normalise=not args.unnormalised,
-        #                     ),
-        #                     gen,
-        #                 )
+        # # Evaluate model predictions over context sets (AR)
+        # logliks = []
+        # json_data = {}
+        # for idx, batch in enumerate(dataset):
+        #     if idx <= 290:
+        #         continue
+        #     logpdf = nps.ar_loglik(state, model, batch["contexts"], batch["xt"], batch["yt"], normalise=True)[1]
+        #     logliks.append(logpdf)
+        #     json_data[idx] = (batch["contexts"][0][0].numel(), logpdf.item())
+        #     out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *logpdf))
+        #     with open(wd_eval.file("logliks_AR.json"), "w", encoding="utf-8") as f:
+        #         json.dump(json_data, f, ensure_ascii=False, indent=4)
+        # logliks = B.concat(*logliks)
+        # out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
 
     else:
         # Perform training. First, check if we want to resume training.
@@ -693,10 +536,10 @@ def main(**kw_args):
         if args.resume_at_epoch:
             start = args.resume_at_epoch - 1
             d_last = patch_model(
-                torch.load(wd.file("model-last.torch"), map_location=device)
+                torch.load(wd_train.file("model-last.torch"), map_location=device)
             )
             d_best = patch_model(
-                torch.load(wd.file("model-best.torch"), map_location=device)
+                torch.load(wd_train.file("model-best.torch"), map_location=device)
             )
             model.load_state_dict(d_last["weights"])
             best_eval_lik = d_best["objective"]
@@ -724,7 +567,7 @@ def main(**kw_args):
                             "weights": model.state_dict(),
                             "epoch": i + 1,
                         },
-                        wd.file(f"model-epoch-{i+1}.torch"),
+                        wd_train.file(f"model-epoch-{i+1}.torch"),
                     )
 
                 # Perform an epoch.
@@ -751,7 +594,7 @@ def main(**kw_args):
                         "objective": val,
                         "epoch": i + 1,
                     },
-                    wd.file(f"model-last.torch"),
+                    wd_train.file(f"model-last.torch"),
                 )
 
                 # Check if the model is the new best. If so, save it.
@@ -764,7 +607,7 @@ def main(**kw_args):
                             "objective": val,
                             "epoch": i + 1,
                         },
-                        wd.file(f"model-best.torch"),
+                        wd_train.file(f"model-best.torch"),
                     )
 
                 # Visualise a few predictions by the model.
@@ -773,7 +616,7 @@ def main(**kw_args):
                     exp.visualise(
                         model,
                         gen,
-                        path=wd.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
+                        path=wd_train.file(f"train-epoch-{i + 1:03d}-{j + 1}.pdf"),
                         config=config,
                     )
 
