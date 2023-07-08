@@ -12,17 +12,16 @@ __all__ = ["NoisedSquareWaveGenerator"]
 
 class NoisedSquareWaveGenerator(SyntheticGenerator):
 
-    def __init__(self, *args, dist_freq=UniformContinuous(2, 4), dist_off=UniformContinuous(-1, 1), dist_ampl=UniformContinuous(0.5, 2), noise_levels=2, **kw_args):
+    def __init__(self, *args, dist_freq=UniformContinuous(2, 4), noise_levels=None, beta=None, **kw_args):
         super().__init__(*args, **kw_args)
         self.dist_freq = dist_freq
-        self.dist_off = dist_off
-        self.dist_ampl = dist_ampl
         self.noise_levels = noise_levels
+        self.beta = beta
 
-    def _noise_up(self, yt, iters, beta=0.1):
+    def _noise_up(self, yt, iters):
 
         for _ in range(iters):
-            yt = B.sqrt(1-beta)*yt+ beta*torch.randn(yt.shape).to(self.device)
+            yt = B.sqrt(1-self.beta)*yt+ self.beta*torch.randn(yt.shape).to(self.device)
 
         return yt
 
@@ -40,20 +39,6 @@ class NoisedSquareWaveGenerator(SyntheticGenerator):
                 self.batch_size,
                 self.dim_y_latent,
             )
-            # Sample an offset.
-            self.state, offset = self.dist_off.sample(
-                self.state,
-                self.float64,
-                self.batch_size,
-                self.dim_y_latent,
-            )
-            # Sample an amplitude.
-            self.state, amplitude = self.dist_ampl.sample(
-                self.state,
-                self.float64,
-                self.batch_size,
-                self.dim_y_latent,
-            )
 
             multi_yt = []
             for level, xt in enumerate(multi_xt):
@@ -61,10 +46,10 @@ class NoisedSquareWaveGenerator(SyntheticGenerator):
                 x = B.concat(xc, xt, axis=1)
 
                 # Construct the sawtooth and add noise.
-                f = B.transpose(B.where(B.floor(x * freq) % 2 == 0, offset, offset+amplitude))
+                f = B.transpose(B.where(B.floor(x * freq) % 2 == 0, 0, 1))
                 # if self.h is not None:
                 #     f = B.matmul(self.h, f)
-                y = f + B.sqrt(self.noise) * B.randn(f)
+                y = f + B.sqrt(self.noise) * B.randn(f.float())
 
                 yc = _c(y[:, :, :nc])
                 yt = self._noise_up(_c(y[:, :, nc:]), level)
