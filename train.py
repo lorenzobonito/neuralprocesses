@@ -502,8 +502,6 @@ def main(**kw_args):
         # Load different context sets
         dataset = torch.load(f"benchmark_datasets/benchmark_dataset_noised_sawtooth_{args.dim_y}_layers.pt", map_location=device)
         
-        # UP TO HERE OK
-
         # Evaluate model predictions over context sets (regular)
         logliks = []
         json_data = {}
@@ -522,19 +520,21 @@ def main(**kw_args):
         out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
 
         # # Evaluate model predictions over context sets (AR)
-        # logliks = []
-        # json_data = {}
+        # if os.path.exists(wd_eval.file("logliks_AR.json")):
+        #     with open(wd_eval.file("logliks_AR.json"), "w", encoding="utf-8") as f:
+        #         json_data = json.load(f)
+        # else:
+        #     json_data = {}
         # for idx, batch in enumerate(dataset):
-        #     if idx <= 290:
+        #     if idx in json_data.keys():
         #         continue
         #     logpdf = nps.ar_loglik(state, model, batch["contexts"], batch["xt"], batch["yt"], normalise=True)[1]
-        #     logliks.append(logpdf)
         #     json_data[idx] = (batch["contexts"][0][0].numel(), logpdf.item())
         #     out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *logpdf))
         #     with open(wd_eval.file("logliks_AR.json"), "w", encoding="utf-8") as f:
         #         json.dump(json_data, f, ensure_ascii=False, indent=4)
-        # logliks = B.concat(*logliks)
-        # out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
+        # # logliks = B.concat(*logliks)
+        # # out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
 
     else:
         # Perform training. First, check if we want to resume training.
@@ -628,6 +628,6 @@ def main(**kw_args):
 
 
 if __name__ == "__main__":
-    # main(data="sawtooth", epochs=500)
-    # main(data="sawtooth", epochs=500, num_unet_channels=10, size_unet_channels=70)
-    main(data="sawtooth", epochs=500, num_unet_channels=12, size_unet_channels=80)
+    # main(data="sawtooth", epochs=500, evaluate=True)
+    # main(data="sawtooth", epochs=500, num_unet_channels=10, size_unet_channels=70, evaluate=True)
+    main(data="sawtooth", epochs=500, num_unet_channels=12, size_unet_channels=80, evaluate=True)

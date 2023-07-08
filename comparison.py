@@ -289,13 +289,54 @@ if __name__ == "__main__":
     #     split = json.load(f)
     # plot_hist_comparison_by_context([og, joint, split], ["OG", "Joint", "Split"], f"baseline_comp/1000_ar_samples")
 
-    # Compare OG with AR and basic 3 layers joint and split
-    with open(f"_experiments/sawtooth/x1_y1/convcnp/unet/loglik/logliks.json", "r") as f:
-        og = json.load(f)
-    with open(f"_experiments/sawtooth/x1_y1/convcnp/unet/loglik/logliks_AR.json", "r") as f:
-        ar = json.load(f)
-    with open(f"/scratch/lb953/_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
-        joint = json.load(f)
-    with open(f"/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
-        split = json.load(f)
-    plot_hist_comparison_by_context([og, joint, split, ar], ["OG", "Joint", "Split", "AR"], f"baseline_comp/AR_baseline_100_ar_samples")
+    # # Compare OG with AR and basic 3 layers joint and split
+    # for arch in ARCHS:
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_regular.json", "r") as f:
+    #         og = json.load(f)
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_AR.json", "r") as f:
+    #         ar = json.load(f)
+    #     with open(f"_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/{arch}/500_epochs/eval/1000/logliks.json", "r") as f:
+    #         joint = json.load(f)
+    #     with open(f"_experiments/noised_sawtooth/split/3_layers/convcnp/unet/{arch}/500_epochs/eval/1000/logliks.json", "r") as f:
+    #         split = json.load(f)
+    #     plot_hist_comparison_by_context([og, joint, split, ar], ["OG", "Joint", "Split", "AR"], f"baseline_comp/{arch}_1000_ar_samples")
+
+    # # Compare OG big with AR big, 3 layers joint big and 3 layers split small
+    # with open(f"_experiments/sawtooth/original_model/convcnp/unet/s80_n12_k5/500_epochs/eval/logliks_regular.json", "r") as f:
+    #     og = json.load(f)
+    # with open(f"_experiments/sawtooth/original_model/convcnp/unet/s80_n12_k5/500_epochs/eval/logliks_AR.json", "r") as f:
+    #     ar = json.load(f)
+    # with open(f"_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s80_n12_k5/500_epochs/eval/1000/logliks.json", "r") as f:
+    #     joint = json.load(f)
+    # with open(f"_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/1000/logliks.json", "r") as f:
+    #     split = json.load(f)
+    # plot_hist_comparison_by_context([og, joint, split, ar], ["OG", "Joint", "Split", "AR"], f"baseline_comp/same_param_count")
+
+    # # Compare AR architectures
+    # for kind in ["regular", "AR"]:
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/s64_n6_k5/500_epochs/eval/logliks_{kind}.json", "r") as f:
+    #         small = json.load(f)
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/s70_n10_k5/500_epochs/eval/logliks_{kind}.json", "r") as f:
+    #         medium = json.load(f)
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/s80_n12_k5/500_epochs/eval/logliks_{kind}.json", "r") as f:
+    #         large = json.load(f)
+    #     plot_hist_comparison_by_context([small, medium, large], ["Small", "Medium", "Large"], f"baseline_comp/{kind}_arch_comp")
+
+    # # Compare best models
+    # with open(f"_experiments/sawtooth/original_model/convcnp/unet/s64_n6_k5/500_epochs/eval/logliks_regular.json", "r") as f:
+    #     og = json.load(f)
+    # with open(f"_experiments/sawtooth/original_model/convcnp/unet/s64_n6_k5/500_epochs/eval/logliks_AR.json", "r") as f:
+    #     ar = json.load(f)
+    # with open(f"_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/1000/logliks.json", "r") as f:
+    #     joint = json.load(f)
+    # with open(f"_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s80_n12_k5/500_epochs/eval/1000/logliks.json", "r") as f:
+    #     split = json.load(f)
+    # plot_hist_comparison_by_context([og, joint, split, ar], ["OG", "Joint", "Split", "AR"], f"baseline_comp/best_models")
+
+    # Compare AR and no AR models
+    for arch in ARCHS:
+        with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_regular.json", "r") as f:
+            og = json.load(f)
+        with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_AR.json", "r") as f:
+            ar = json.load(f)
+        plot_hist_comparison_by_context([og, ar], ["OG", "AR"], f"ar_vs_no_ar/{arch}")
