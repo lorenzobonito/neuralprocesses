@@ -32,9 +32,9 @@ def compute_beta(final_noise_var, num_levels):
 
 if __name__ == "__main__":
 
-    FINAL_VAR = 0.1
-    NUM_LEVELS = 3
-    beta = compute_beta(FINAL_VAR, NUM_LEVELS)
+    FINAL_VAR = 0.025
+    NUM_NOISE_LEVELS = 2
+    beta = compute_beta(FINAL_VAR, NUM_NOISE_LEVELS)
     print(f"Beta:{beta}")
     # x = np.arange(1, 10)
     # var = beta - beta*(1-beta)**x

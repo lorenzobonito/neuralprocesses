@@ -129,7 +129,7 @@ def main(**kw_args):
     # Only passed if split model is being trained
     parser.add_argument("--model-index", type=int, default=None)
     parser.add_argument("--noise-levels", type=int, default=None)
-    parser.add_argument("--max-noise-var", type=float, default=0.1)
+    parser.add_argument("--max-noise-var", type=float, default=0.025)
 
     parser.add_argument("--num-unet-channels", type=int, default=6)
     parser.add_argument("--size-unet-channels", type=int, default=64)
