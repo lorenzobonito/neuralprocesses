@@ -11,15 +11,16 @@ __all__ = ["NoisedSawtoothGenerator"]
 
 class NoisedSawtoothGenerator(SyntheticGenerator):
 
-    def __init__(self, *args, dist_freq=UniformContinuous(3, 5), noise_levels=2, **kw_args):
+    def __init__(self, *args, dist_freq=UniformContinuous(3, 5), noise_levels=None, beta=None, **kw_args):
         super().__init__(*args, **kw_args)
         self.dist_freq = dist_freq
         self.noise_levels = noise_levels
+        self.beta = beta
 
-    def _noise_up(self, yt, iters, beta=0.1):
+    def _noise_up(self, yt, iters):
 
         for _ in range(iters):
-            yt = B.sqrt(1-beta)*yt+ beta*torch.randn(yt.shape).to(self.device)
+            yt = B.sqrt(1-self.beta)*yt+ self.beta*torch.randn(yt.shape).to(self.device)
 
         return yt
 

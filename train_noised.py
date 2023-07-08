@@ -18,6 +18,7 @@ from wbml.experiment import WorkingDirectory
 from batch_masking import mask_batch
 from noised_AR_pred import split_AR_prediction, joint_AR_prediction
 from training_dynamics import split_training_dynamics, joint_training_dynamics
+from noise_comp import compute_beta
 
 __all__ = ["main"]
 
@@ -128,6 +129,7 @@ def main(**kw_args):
     # Only passed if split model is being trained
     parser.add_argument("--model-index", type=int, default=None)
     parser.add_argument("--noise-levels", type=int, default=None)
+    parser.add_argument("--max-noise-var", type=float, default=0.1)
 
     parser.add_argument("--num-unet-channels", type=int, default=6)
     parser.add_argument("--size-unet-channels", type=int, default=64)
@@ -283,6 +285,7 @@ def main(**kw_args):
         noise_levels = args.noise_levels
     else:
         noise_levels = args.dim_y - 1
+    beta = compute_beta(args.max_noise_var, noise_levels)
     config = {
         "default": {
             "epochs": None,
@@ -313,6 +316,7 @@ def main(**kw_args):
         "num_basis_functions": 64,
         "eeg_mode": args.eeg_mode,
         "noise_levels": noise_levels,
+        "beta": beta,
     }
 
     # Setup data generators for training and for evaluation.
@@ -676,7 +680,10 @@ if __name__ == "__main__":
     # for proc in eval_procs:
     #     proc.join()
 
-    # main(data="noised_sawtooth", dim_y=3, epochs=500)
+    main(data="noised_sawtooth", dim_y=3, epochs=500)
+    # main(data="noised_sawtooth", dim_y=4, epochs=500)
+    # main(data="noised_sawtooth", dim_y=5, epochs=500)
+    # main(data="noised_sawtooth", dim_y=6, epochs=500)
     # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=10, size_unet_channels=70)
-    main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=12, size_unet_channels=80)
+    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=12, size_unet_channels=80)
     # main(data="noised_sawtooth", dim_y=1, epochs=500, noise_levels=0, evaluate=True, ar_samples=1000)

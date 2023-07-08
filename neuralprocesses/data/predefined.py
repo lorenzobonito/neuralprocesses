@@ -25,7 +25,8 @@ def construct_predefined_gens(
     pred_logpdf=True,
     pred_logpdf_diag=True,
     device="cpu",
-    noise_levels=2,
+    noise_levels=None,
+    beta=None
 ):
     """Construct a number of predefined data generators.
 
@@ -106,6 +107,7 @@ def construct_predefined_gens(
         noise=0,
         dist_freq=UniformContinuous(2 / factor, 4 / factor),
         noise_levels=noise_levels,
+        beta=beta,
         num_context=UniformDiscrete(0, max_context),
         num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
         **config,
@@ -116,6 +118,7 @@ def construct_predefined_gens(
         seed=seed,
         noise=0,
         noise_levels=noise_levels,
+        beta=beta,
         num_context=UniformDiscrete(0, max_context),
         num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
         **config,
