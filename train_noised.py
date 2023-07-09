@@ -258,6 +258,7 @@ def main(**kw_args):
             "convcnp",
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+            f"{args.max_noise_var}_var",
             f"{args.epochs}_epochs",
             "train",
             str(args.model_index) if args.model_index is not None else "",
@@ -428,6 +429,7 @@ def main(**kw_args):
             "convcnp",
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+            f"{args.max_noise_var}_var",
             f"{args.epochs}_epochs",
             "eval",
             str(args.ar_samples),
@@ -489,6 +491,7 @@ def main(**kw_args):
                     "convcnp",
                     *((args.arch,) if hasattr(args, "arch") else ()),
                     f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+                    f"{args.max_noise_var}_var",
                     f"{args.epochs}_epochs",
                     "train",
                     str(index),
@@ -646,38 +649,41 @@ if __name__ == "__main__":
     # For joint model, set dim_y = LEVELS.
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
-    LEVELS = 6
+    LEVELS = 3
 
     train_procs = []
     for index in range(LEVELS):
         proc = Process(target=main, 
                        kwargs={"data":"noised_sawtooth",
-                               "epochs":500,
+                               "epochs":300,
                                "noise_levels":LEVELS-1,
                                "model_index":index,
-                               "gpu":1})
+                               "gpu":1,
+                               "max_noise_var":0.075})
         train_procs.append(proc)
         proc.start()
     for proc in train_procs:
         proc.join()
 
     eval_procs = []
-    for ar_samples in [100, 1000]:
+    for ar_samples in [100]:
         proc = Process(target=main,
                        kwargs={"data":"noised_sawtooth",
-                               "epochs":500,
+                               "epochs":300,
                                "noise_levels":LEVELS-1,
                                "model_index":-1,
                                "evaluate":True,
                                "ar_samples":ar_samples,
-                               "gpu":1})
+                               "gpu":1,
+                               "max_noise_var":0.075})
         eval_procs.append(proc)
         proc.start()
     for proc in eval_procs:
         proc.join()
 
-    # main(data="noised_sawtooth", dim_y=1, noise_levels=2, epochs=500)
-    # main(data="noised_sawtooth", dim_y=1, noise_levels=3, epochs=500)
+
+    # [0.05, 0.075, 0.1]
+    # main(data="noised_sawtooth", dim_y=1, noise_levels=3, epochs=300, )
     # main(data="noised_sawtooth", dim_y=1, noise_levels=4, epochs=500)
     # main(data="noised_sawtooth", dim_y=1, noise_levels=5, epochs=500)
     # main(data="noised_sawtooth", dim_y=4, epochs=500)
