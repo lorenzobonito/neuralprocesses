@@ -333,10 +333,21 @@ if __name__ == "__main__":
     #     split = json.load(f)
     # plot_hist_comparison_by_context([og, joint, split, ar], ["OG", "Joint", "Split", "AR"], f"baseline_comp/best_models")
 
-    # Compare AR and no AR models
-    for arch in ARCHS:
-        with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_regular.json", "r") as f:
-            og = json.load(f)
-        with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_AR.json", "r") as f:
-            ar = json.load(f)
-        plot_hist_comparison_by_context([og, ar], ["OG", "AR"], f"ar_vs_no_ar/{arch}")
+    # # Compare AR and no AR models
+    # for arch in ARCHS:
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_regular.json", "r") as f:
+    #         og = json.load(f)
+    #     with open(f"_experiments/sawtooth/original_model/convcnp/unet/{arch}/500_epochs/eval/logliks_AR.json", "r") as f:
+    #         ar = json.load(f)
+    #     plot_hist_comparison_by_context([og, ar], ["OG", "AR"], f"ar_vs_no_ar/{arch}")
+
+    # Compare upper-bounded noise
+    with open(f"_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
+        l3 = json.load(f)
+    with open(f"_experiments/noised_sawtooth/joint/4_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
+        l4 = json.load(f)
+    with open(f"_experiments/noised_sawtooth/joint/5_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
+        l5 = json.load(f)
+    with open(f"_experiments/noised_sawtooth/joint/6_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
+        l6 = json.load(f)
+    plot_hist_comparison_by_context([l3, l4, l5, l6], ["3 layers", "4 layers", "5 layers", "6 layers"], f"upper_bounded_noise_joint")
