@@ -706,15 +706,15 @@ if __name__ == "__main__":
         "unet_kernels": hp.choice("unet_kernels", [3, 5, 7])
         }
 
-    hyperopt_search = HyperOptSearch(search_space, metric="avg_loglik", mode="max")
-
     tuner = tune.Tuner(
         tune.with_resources(_train_bOpt, {"gpu": 1}),
         tune_config=tune.TuneConfig(
             metric="avg_loglik",
             mode="max",
-            num_samples=2,
-            search_alg=hyperopt_search,
+            num_samples=12,
+            search_alg=HyperOptSearch(search_space, metric="avg_loglik", mode="max"),
+            scheduler=ASHAScheduler(),
+            # max_concurrent_trials=3,
         ),
         run_config=air.RunConfig(storage_path="./ray_results", name="test_experiment")
     )
