@@ -53,15 +53,30 @@ def _split_eval(run_args: dict):
     return avg_loglik
 
 
-def _train_bOpt(run_args: dict):
+def _train_bOpt_split(run_args: dict):
+
+    # tune.utils.wait_for_gpu(target_util=0.66)
 
     kwargs = run_args.copy()
     kwargs["num_unet_channels"] = int(kwargs["num_unet_channels"])
-    kwargs["size_unet_channels"] = int(kwargs["num_unet_channels"])
+    kwargs["size_unet_channels"] = int(kwargs["size_unet_channels"])
     _split_train(kwargs)
     avg_loglik = _split_eval(kwargs)
     session.report({"avg_loglik": avg_loglik})
-    
+
+
+def _train_bOpt_joint(run_args: dict):
+
+    kwargs = run_args.copy()
+    kwargs["root"] = f"{os.getcwd()}/_experiments"
+    kwargs["num_unet_channels"] = int(kwargs["num_unet_channels"])
+    kwargs["size_unet_channels"] = int(kwargs["size_unet_channels"])
+    main(**kwargs)
+    kwargs["evaluate"] = True
+    kwargs["ar_samples"] = 10
+    avg_loglik = main(**kwargs)
+    session.report({"avg_loglik": avg_loglik})
+
 
 def train(state, model, opt, objective, gen, *, fix_noise, level_index: int):
     """Train for an epoch."""
@@ -697,7 +712,8 @@ if __name__ == "__main__":
         "data": "noised_sawtooth",
         "epochs": 1,
         "noise_levels": 2,
-        "max_noise_var": 0.1,
+        # "dim_y": 3,
+        # "gpu": 0,
         "stride": hp.choice("stride", [1, 2]),
         "rate": hp.loguniform("rate", -5, -2),
         "max_noise_var": hp.uniform("max_noise_var", 0, 0.5),
@@ -707,18 +723,16 @@ if __name__ == "__main__":
         }
 
     tuner = tune.Tuner(
-        tune.with_resources(_train_bOpt, {"gpu": 1}),
+        tune.with_resources(_train_bOpt_split, {"gpu": 0.8}),
         tune_config=tune.TuneConfig(
             metric="avg_loglik",
             mode="max",
-            num_samples=12,
+            num_samples=5,
             search_alg=HyperOptSearch(search_space, metric="avg_loglik", mode="max"),
             scheduler=ASHAScheduler(),
-            # max_concurrent_trials=3,
+            max_concurrent_trials=2,
         ),
         run_config=air.RunConfig(storage_path="./ray_results", name="test_experiment")
     )
     results = tuner.fit()
     print("Best config is:", results.get_best_result().config)
-
-    # CHECK NUMBER OF TRIALS RUNNING AT SAME TIME AND LIMIT BASED ON MEMORY?
