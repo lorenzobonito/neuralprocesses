@@ -351,3 +351,12 @@ if __name__ == "__main__":
     with open(f"_experiments/noised_sawtooth/joint/6_layers/convcnp/unet/s64_n6_k5/500_epochs/eval/100/logliks.json", "r") as f:
         l6 = json.load(f)
     plot_hist_comparison_by_context([l3, l4, l5, l6], ["3 layers", "4 layers", "5 layers", "6 layers"], f"upper_bounded_noise_joint")
+
+
+    # Compare upper-bounded noise values
+    variances = [0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.075, 0.1, 0.15, 0.2]
+    data = []
+    for var in variances:
+        with open(f"_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/{var}_var/300_epochs/eval/100/logliks.json", "r") as f:
+            data.append(json.load(f))
+    plot_hist_comparison_by_context(data, [f"{var} var" for var in variances], f"upper_bounded_noise_values_comp")

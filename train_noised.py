@@ -648,18 +648,18 @@ if __name__ == "__main__":
 
     # For joint model, set dim_y = LEVELS.
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
-
+    # [0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
     LEVELS = 3
 
     train_procs = []
     for index in range(LEVELS):
         proc = Process(target=main, 
                        kwargs={"data":"noised_sawtooth",
-                               "epochs":300,
+                               "epochs":500,
                                "noise_levels":LEVELS-1,
                                "model_index":index,
                                "gpu":1,
-                               "max_noise_var":0.075})
+                               "max_noise_var":0.12})
         train_procs.append(proc)
         proc.start()
     for proc in train_procs:
@@ -669,20 +669,18 @@ if __name__ == "__main__":
     for ar_samples in [100]:
         proc = Process(target=main,
                        kwargs={"data":"noised_sawtooth",
-                               "epochs":300,
+                               "epochs":500,
                                "noise_levels":LEVELS-1,
                                "model_index":-1,
                                "evaluate":True,
                                "ar_samples":ar_samples,
                                "gpu":1,
-                               "max_noise_var":0.075})
+                               "max_noise_var":0.12})
         eval_procs.append(proc)
         proc.start()
     for proc in eval_procs:
         proc.join()
 
-
-    # [0.05, 0.075, 0.1]
     # main(data="noised_sawtooth", dim_y=1, noise_levels=3, epochs=300, )
     # main(data="noised_sawtooth", dim_y=1, noise_levels=4, epochs=500)
     # main(data="noised_sawtooth", dim_y=1, noise_levels=5, epochs=500)
