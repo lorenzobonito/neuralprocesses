@@ -73,7 +73,7 @@ def _train_bOpt_joint(run_args: dict):
     kwargs["size_unet_channels"] = int(kwargs["size_unet_channels"])
     main(**kwargs)
     kwargs["evaluate"] = True
-    kwargs["ar_samples"] = 10
+    kwargs["ar_samples"] = 100
     avg_loglik = main(**kwargs)
     session.report({"avg_loglik": avg_loglik})
 
@@ -567,8 +567,6 @@ def main(**kw_args):
         logliks = []
         json_data = {}
         for idx, batch in enumerate(dataset):
-            if idx>5:
-                break
             if args.model_index is not None:
                 state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             else:
@@ -710,7 +708,7 @@ if __name__ == "__main__":
 
     search_space = {
         "data": "noised_sawtooth",
-        "epochs": 1,
+        "epochs": 300,
         "noise_levels": 2,
         # "dim_y": 3,
         # "gpu": 0,
@@ -723,14 +721,14 @@ if __name__ == "__main__":
         }
 
     tuner = tune.Tuner(
-        tune.with_resources(_train_bOpt_split, {"gpu": 0.8}),
+        tune.with_resources(_train_bOpt_split, {"gpu": 0.5}),
         tune_config=tune.TuneConfig(
             metric="avg_loglik",
             mode="max",
-            num_samples=5,
+            num_samples=50,
             search_alg=HyperOptSearch(search_space, metric="avg_loglik", mode="max"),
             scheduler=ASHAScheduler(),
-            max_concurrent_trials=2,
+            # max_concurrent_trials=2,
         ),
         run_config=air.RunConfig(storage_path="./ray_results", name="test_experiment")
     )
