@@ -55,9 +55,8 @@ def _split_eval(run_args: dict):
 
 def _train_bOpt_split(run_args: dict):
 
-    # tune.utils.wait_for_gpu(target_util=0.66)
-
     kwargs = run_args.copy()
+    kwargs["root"] = f"{os.getcwd()}/_experiments"
     kwargs["num_unet_channels"] = int(kwargs["num_unet_channels"])
     kwargs["size_unet_channels"] = int(kwargs["size_unet_channels"])
     _split_train(kwargs)
@@ -708,9 +707,9 @@ if __name__ == "__main__":
 
     search_space = {
         "data": "noised_sawtooth",
-        "epochs": 300,
-        "noise_levels": 2,
-        # "dim_y": 3,
+        "epochs": 150,
+        # "noise_levels": 2,
+        "dim_y": 3,
         # "gpu": 0,
         "stride": hp.choice("stride", [1, 2]),
         "rate": hp.loguniform("rate", -5, -2),
@@ -721,13 +720,13 @@ if __name__ == "__main__":
         }
 
     tuner = tune.Tuner(
-        tune.with_resources(_train_bOpt_split, {"gpu": 0.5}),
+        tune.with_resources(_train_bOpt_joint, {"gpu": 0.5}),
         tune_config=tune.TuneConfig(
             metric="avg_loglik",
             mode="max",
-            num_samples=50,
+            num_samples=60,
             search_alg=HyperOptSearch(search_space, metric="avg_loglik", mode="max"),
-            scheduler=ASHAScheduler(),
+            # scheduler=ASHAScheduler(),
             # max_concurrent_trials=2,
         ),
         run_config=air.RunConfig(storage_path="./ray_results", name="test_experiment")
