@@ -129,8 +129,9 @@ def main(**kw_args):
     # Only passed if split model is being trained
     parser.add_argument("--model-index", type=int, default=None)
     parser.add_argument("--noise-levels", type=int, default=None)
-    parser.add_argument("--max-noise-var", type=float, default=0.025)
 
+    parser.add_argument("--max-noise-var", type=float, default=0.025)
+    parser.add_argument("--same-xt", action="store_true")
     parser.add_argument("--num-unet-channels", type=int, default=6)
     parser.add_argument("--size-unet-channels", type=int, default=64)
     parser.add_argument("--unet-kernels", type=int, default=5)
@@ -259,6 +260,7 @@ def main(**kw_args):
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             f"{args.max_noise_var}_var",
+            "same_xt" if args.same_xt else "diff_xt",
             f"{args.epochs}_epochs",
             "train",
             str(args.model_index) if args.model_index is not None else "",
@@ -318,6 +320,7 @@ def main(**kw_args):
         "eeg_mode": args.eeg_mode,
         "noise_levels": noise_levels,
         "beta": beta,
+        "same_xt": args.same_xt,
     }
 
     # Setup data generators for training and for evaluation.
@@ -430,6 +433,7 @@ def main(**kw_args):
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             f"{args.max_noise_var}_var",
+            "same_xt" if args.same_xt else "diff_xt",
             f"{args.epochs}_epochs",
             "eval",
             str(args.ar_samples),
@@ -492,6 +496,7 @@ def main(**kw_args):
                     *((args.arch,) if hasattr(args, "arch") else ()),
                     f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
                     f"{args.max_noise_var}_var",
+                    "same_xt" if args.same_xt else "diff_xt",
                     f"{args.epochs}_epochs",
                     "train",
                     str(index),
@@ -653,20 +658,21 @@ if __name__ == "__main__":
 
     train_procs = []
     for index in range(LEVELS):
-        proc = Process(target=main, 
+        proc = Process(target=main,
                        kwargs={"data":"noised_sawtooth",
                                "epochs":500,
                                "noise_levels":LEVELS-1,
                                "model_index":index,
-                               "gpu":1,
-                               "max_noise_var":0.12})
+                               "gpu":0,
+                               "max_noise_var":0.1,})
+                            #    "same_xt":True})
         train_procs.append(proc)
         proc.start()
     for proc in train_procs:
         proc.join()
 
     eval_procs = []
-    for ar_samples in [100]:
+    for ar_samples in [250]:
         proc = Process(target=main,
                        kwargs={"data":"noised_sawtooth",
                                "epochs":500,
@@ -674,8 +680,9 @@ if __name__ == "__main__":
                                "model_index":-1,
                                "evaluate":True,
                                "ar_samples":ar_samples,
-                               "gpu":1,
-                               "max_noise_var":0.12})
+                               "gpu":0,
+                               "max_noise_var":0.1,})
+                            #    "same_xt":True})
         eval_procs.append(proc)
         proc.start()
     for proc in eval_procs:
