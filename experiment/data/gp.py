@@ -106,6 +106,7 @@ names = [
     "mix-matern",
     "mix-weakly-periodic",
     "sawtooth",
+    "noised_gp",
     "noised_sawtooth",
     "noised_square_wave",
     "mixture",

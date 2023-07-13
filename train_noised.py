@@ -660,11 +660,11 @@ if __name__ == "__main__":
     train_procs = []
     for index in range(LEVELS):
         proc = Process(target=main,
-                       kwargs={"data":"noised_sawtooth",
+                       kwargs={"data":"noised_gp",
                                "epochs":500,
                                "noise_levels":LEVELS-1,
                                "model_index":index,
-                               "gpu":1,
+                               "gpu":0,
                                "max_noise_var":0.08,})
                             #    "same_xt":True})
         train_procs.append(proc)
@@ -675,13 +675,13 @@ if __name__ == "__main__":
     eval_procs = []
     for ar_samples in [250]:
         proc = Process(target=main,
-                       kwargs={"data":"noised_sawtooth",
+                       kwargs={"data":"noised_gp",
                                "epochs":500,
                                "noise_levels":LEVELS-1,
                                "model_index":-1,
                                "evaluate":True,
                                "ar_samples":ar_samples,
-                               "gpu":1,
+                               "gpu":0,
                                "max_noise_var":0.08,})
                             #    "same_xt":True})
         eval_procs.append(proc)
@@ -711,4 +711,4 @@ if __name__ == "__main__":
     # eval_proc.start()
     # eval_proc.join()
 
-    # main(data="noised_sawtooth", dim_y=3, epochs=10, batch_size=1, same_xt=True)
+    # main(data="noised_gp", dim_y=3, epochs=10, batch_size=1)

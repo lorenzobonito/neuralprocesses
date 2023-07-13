@@ -6,6 +6,7 @@ from .mixture import MixtureGenerator
 from .mixgp import MixtureGPGenerator
 from .sawtooth import SawtoothGenerator
 from .noised_sawtooth import NoisedSawtoothGenerator
+from .noised_gp import NoisedGPGenerator
 from .noised_square_wave import NoisedSquareWaveGenerator
 from ..dist.uniform import UniformDiscrete, UniformContinuous
 
@@ -123,6 +124,20 @@ def construct_predefined_gens(
         beta=beta,
         num_context=UniformDiscrete(0, max_context),
         num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        **config,
+    )
+
+    gens["noised_gp"] = NoisedGPGenerator(
+        dtype,
+        seed=seed,
+        noise=0,
+        kernel=EQ().stretch(factor * 0.25),
+        noise_levels=noise_levels,
+        beta=beta,
+        num_context=UniformDiscrete(0, max_context),
+        num_target=UniformDiscrete(50 * dim_x, 50 * dim_x),
+        pred_logpdf=pred_logpdf,
+        pred_logpdf_diag=pred_logpdf_diag,
         **config,
     )
 
