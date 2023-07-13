@@ -354,10 +354,17 @@ if __name__ == "__main__":
     # plot_hist_comparison_by_context([l3, l4, l5, l6], ["3 layers", "4 layers", "5 layers", "6 layers"], f"upper_bounded_noise_joint")
 
 
-    # Compare upper-bounded noise values
-    variances = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
-    data = []
-    for var in variances:
-        with open(f"_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/{var}_var/500_epochs/eval/100/logliks.json", "r") as f:
-            data.append(json.load(f))
-    plot_hist_comparison_by_context(data, [f"{var} var" for var in variances], f"upper_bounded_noise_values_comp_new")
+    # # Compare upper-bounded noise values
+    # variances = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
+    # data = []
+    # for var in variances:
+    #     with open(f"_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/{var}_var/500_epochs/eval/100/logliks.json", "r") as f:
+    #         data.append(json.load(f))
+    # plot_hist_comparison_by_context(data, [f"{var} var" for var in variances], f"upper_bounded_noise_values_comp_new")
+
+    # Compare same vs different xt
+    with open("_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+        diff_xt = json.load(f)
+    with open("_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/same_xt/500_epochs/eval/250/logliks.json", "r") as f:
+        same_xt = json.load(f)
+    plot_hist_comparison_by_context([same_xt, diff_xt], ["Same xt", "Diff xt"], f"same_vs_diff_xt_joint_0.02_var")

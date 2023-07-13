@@ -654,67 +654,61 @@ if __name__ == "__main__":
     # For joint model, set dim_y = LEVELS.
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
-    LEVELS = 3
+    LEVELS = 6
 
-    # # SPLIT MODEL
-    # train_procs = []
-    # for index in range(LEVELS):
-    #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "epochs":500,
-    #                            "noise_levels":LEVELS-1,
-    #                            "model_index":index,
-    #                            "gpu":0,
-    #                            "max_noise_var":0.1,})
-    #                         #    "same_xt":True})
-    #     train_procs.append(proc)
-    #     proc.start()
-    # for proc in train_procs:
-    #     proc.join()
+    # SPLIT MODEL
+    train_procs = []
+    for index in range(LEVELS):
+        proc = Process(target=main,
+                       kwargs={"data":"noised_sawtooth",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
+                               "model_index":index,
+                               "gpu":1,
+                               "max_noise_var":0.08,})
+                            #    "same_xt":True})
+        train_procs.append(proc)
+        proc.start()
+    for proc in train_procs:
+        proc.join()
 
-    # eval_procs = []
-    # for ar_samples in [250]:
-    #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "epochs":500,
-    #                            "noise_levels":LEVELS-1,
-    #                            "model_index":-1,
-    #                            "evaluate":True,
-    #                            "ar_samples":ar_samples,
-    #                            "gpu":0,
-    #                            "max_noise_var":0.1,})
-    #                         #    "same_xt":True})
-    #     eval_procs.append(proc)
-    #     proc.start()
-    # for proc in eval_procs:
-    #     proc.join()
+    eval_procs = []
+    for ar_samples in [250]:
+        proc = Process(target=main,
+                       kwargs={"data":"noised_sawtooth",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
+                               "model_index":-1,
+                               "evaluate":True,
+                               "ar_samples":ar_samples,
+                               "gpu":1,
+                               "max_noise_var":0.08,})
+                            #    "same_xt":True})
+        eval_procs.append(proc)
+        proc.start()
+    for proc in eval_procs:
+        proc.join()
 
-    # JOINT MODEL
-    train_proc = Process(target=main,
-                   kwargs={"data":"noised_sawtooth",
-                           "epochs":500,
-                           "dim_y":LEVELS,
-                           "gpu":1,
-                           "max_noise_var":0.02,})
-                        #    "same_xt":True})
-    train_proc.start()
-    train_proc.join()
-    eval_proc = Process(target=main,
-                   kwargs={"data":"noised_sawtooth",
-                           "epochs":500,
-                           "dim_y":LEVELS,
-                           "evaluate":True,
-                           "ar_samples":250,
-                           "gpu":1,
-                           "max_noise_var":0.02,})
-                        #    "same_xt":True})
-    eval_proc.start()
-    eval_proc.join()
-    # main(data="noised_sawtooth", dim_y=1, noise_levels=4, epochs=500)
-    # main(data="noised_sawtooth", dim_y=1, noise_levels=5, epochs=500)
-    # main(data="noised_sawtooth", dim_y=4, epochs=500)
-    # main(data="noised_sawtooth", dim_y=5, epochs=500)
-    # main(data="noised_sawtooth", dim_y=6, epochs=500)
-    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=10, size_unet_channels=70)
-    # main(data="noised_sawtooth", dim_y=3, epochs=500, num_unet_channels=12, size_unet_channels=80)
-    # main(data="noised_sawtooth", dim_y=1, epochs=500, noise_levels=0, evaluate=True, ar_samples=1000)
+    # # JOINT MODEL
+    # train_proc = Process(target=main,
+    #                kwargs={"data":"noised_sawtooth",
+    #                        "epochs":500,
+    #                        "dim_y":LEVELS,
+    #                        "gpu":1,
+    #                        "max_noise_var":0.02,})
+    #                     #    "same_xt":True})
+    # train_proc.start()
+    # train_proc.join()
+    # eval_proc = Process(target=main,
+    #                kwargs={"data":"noised_sawtooth",
+    #                        "epochs":500,
+    #                        "dim_y":LEVELS,
+    #                        "evaluate":True,
+    #                        "ar_samples":250,
+    #                        "gpu":1,
+    #                        "max_noise_var":0.02,})
+    #                     #    "same_xt":True})
+    # eval_proc.start()
+    # eval_proc.join()
+
+    # main(data="noised_sawtooth", dim_y=3, epochs=10, batch_size=1, same_xt=True)
