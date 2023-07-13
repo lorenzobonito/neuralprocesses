@@ -1,8 +1,8 @@
 import torch
 import lab as B
-import neuralprocesses.torch as nps
 from neuralprocesses.data.noised_sawtooth import NoisedSawtoothGenerator
 from neuralprocesses.data.noised_square_wave import NoisedSquareWaveGenerator
+from neuralprocesses.data.noised_gp import NoisedGPGenerator
 from neuralprocesses.dist.uniform import UniformDiscrete, UniformContinuous
 from neuralprocesses.aggregate import Aggregate, AggregateInput
 
@@ -34,6 +34,16 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
             num_target=UniformDiscrete(100 * DIM_X, 100 * DIM_X),
             **config,
         )
+    elif gen_type.lower() == "noised_gp":
+            gen = NoisedGPGenerator(
+                torch.float32,
+                seed=42,
+                noise=0,
+                noise_levels=0,
+                num_context=UniformDiscrete(num_context, num_context),
+                num_target=UniformDiscrete(50 * DIM_X, 50 * DIM_X),
+                **config,
+            )
     else:
         raise ValueError("Selected gen_type has not been implemented.")
 
@@ -47,7 +57,7 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
 if __name__ == "__main__":
 
     DIM_Y = 1
-    GEN_TYPE = "noised_sawtooth"
+    GEN_TYPE = "noised_gp"
     # GEN_TYPE = "noised_square_wave"
 
     config = {
