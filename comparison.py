@@ -362,9 +362,25 @@ if __name__ == "__main__":
     #         data.append(json.load(f))
     # plot_hist_comparison_by_context(data, [f"{var} var" for var in variances], f"upper_bounded_noise_values_comp_new")
 
-    # Compare same vs different xt
-    with open("_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
-        diff_xt = json.load(f)
-    with open("_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/same_xt/500_epochs/eval/250/logliks.json", "r") as f:
-        same_xt = json.load(f)
-    plot_hist_comparison_by_context([same_xt, diff_xt], ["Same xt", "Diff xt"], f"same_vs_diff_xt_joint_0.02_var")
+    # # Compare same vs different xt
+    # with open("_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    #     diff_xt = json.load(f)
+    # with open("_experiments/noised_sawtooth/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/same_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    #     same_xt = json.load(f)
+    # plot_hist_comparison_by_context([same_xt, diff_xt], ["Same xt", "Diff xt"], f"same_vs_diff_xt_joint_0.02_var")
+
+    # # Compare diff ydim with higher bound noise
+    # with open("_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    #     l3 = json.load(f)
+    # with open("_experiments/noised_sawtooth/split/4_layers/convcnp/unet/s64_n6_k5/0.12_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    #     l4 = json.load(f)
+    # # with open("_experiments/noised_sawtooth/split/5_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    # #     l5 = json.load(f)
+    # with open("_experiments/noised_sawtooth/split/6_layers/convcnp/unet/s64_n6_k5/0.2_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    #     l6 = json.load(f)
+    # plot_hist_comparison_by_context([l3, l4, l6], ["3 Layers", "4 Layers", "6 Layers"], f"uppboundnoise_increasingvars")
+
+    # GP results
+    with open("/scratch/lb953/_experiments/noised_gp/split/3_layers/convcnp/unet/s64_n6_k5/0.1_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+        noised_gp = json.load(f)
+    plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
