@@ -9,6 +9,7 @@ from .noised_sawtooth import NoisedSawtoothGenerator
 from .noised_gp import NoisedGPGenerator
 from .noised_square_wave import NoisedSquareWaveGenerator
 from ..dist.uniform import UniformDiscrete, UniformContinuous
+from ..dist.reciprocal import ReciprocalInt
 
 __all__ = ["construct_predefined_gens"]
 
@@ -111,7 +112,7 @@ def construct_predefined_gens(
         noise_levels=noise_levels,
         beta=beta,
         same_xt=same_xt,
-        num_context=UniformDiscrete(0, max_context),
+        num_context=UniformDiscrete(0, 5),
         num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
         **config,
     )
