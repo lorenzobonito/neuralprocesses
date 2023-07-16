@@ -380,7 +380,14 @@ if __name__ == "__main__":
     #     l6 = json.load(f)
     # plot_hist_comparison_by_context([l3, l4, l6], ["3 Layers", "4 Layers", "6 Layers"], f"uppboundnoise_increasingvars")
 
-    # GP results
-    with open("/scratch/lb953/_experiments/noised_gp/split/3_layers/convcnp/unet/s64_n6_k5/0.1_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
-        noised_gp = json.load(f)
-    plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
+    # # GP results
+    # with open("/scratch/lb953/_experiments/noised_gp/split/3_layers/convcnp/unet/s64_n6_k5/0.1_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+    #     noised_gp = json.load(f)
+    # plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
+
+    # 5 context points
+    with open("/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+        cont_5 = json.load(f)
+    with open("/scratch/lb953/_experiments_pre_loguniform/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
+        regular = json.load(f)
+    plot_hist_comparison_by_context([cont_5, regular], ["5 Context", "30 Context"], f"low_context_test")
