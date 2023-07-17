@@ -130,7 +130,8 @@ def main(**kw_args):
     parser.add_argument("--model-index", type=int, default=None)
     parser.add_argument("--noise-levels", type=int, default=None)
 
-    parser.add_argument("--max-noise-var", type=float, default=0.025)
+    parser.add_argument("--max-noise-var", type=float, default=0.08)
+    parser.add_argument("--ar-context", type=int, default=0)
     parser.add_argument("--same-xt", action="store_true")
     parser.add_argument("--num-unet-channels", type=int, default=6)
     parser.add_argument("--size-unet-channels", type=int, default=64)
@@ -437,6 +438,7 @@ def main(**kw_args):
             f"{args.epochs}_epochs",
             "eval",
             str(args.ar_samples),
+            str(args.ar_context),
             log=f"log_eval.txt",
             diff=f"diff_eval.txt",
             observe=observe,
@@ -518,7 +520,7 @@ def main(**kw_args):
         json_data = {}
         for idx, batch in enumerate(dataset):
             if args.model_index is not None:
-                state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
+                state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, ar_context=args.ar_context, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             else:
                 state, loglik = joint_AR_prediction(state, model, batch, num_samples=args.ar_samples, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
@@ -673,14 +675,15 @@ if __name__ == "__main__":
     #     proc.join()
 
     eval_procs = []
-    for ar_samples in [100]:
+    for ar_context in [6, 8]:
         proc = Process(target=main,
                        kwargs={"data":"noised_sawtooth",
                                "epochs":500,
                                "noise_levels":LEVELS-1,
                                "model_index":-1,
                                "evaluate":True,
-                               "ar_samples":ar_samples,
+                               "ar_samples":250,
+                               "ar_context":ar_context,
                                "gpu":0,
                                "max_noise_var":0.08,})
                             #    "same_xt":True})

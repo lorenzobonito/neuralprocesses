@@ -11,7 +11,7 @@ from batch_masking import mask_contexts, mask_xt, mask_yt
 __all__ = ["joint_AR_prediction", "split_AR_prediction"]
 
 
-def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=None, config=None):
+def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise=True, path=None, config=None):
 
     true_y0t = batch["yt"]
     num_layers = len(models)
@@ -34,17 +34,17 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
 
         logpdfs = None
         og_context_size = B.length(batch["contexts"][0][0])
-        desired_context_size = 10
 
-        if og_context_size < desired_context_size:
+        if og_context_size < ar_context:
             # Expanding context using AR until N points are available
             # No option to set replace=False below, and cannot change that without Wessel
-            state, xt_subsample = B.choice(state, batch["xt"][0][0].squeeze((0, 1)), (desired_context_size-og_context_size))
+            state, xt_subsample = B.choice(state, batch["xt"][0][0].squeeze((0, 1)), (ar_context-og_context_size))
             xt_subsample = AggregateInput((B.expand_dims(xt_subsample, axis=0, times=2), 0))
             state, _, _, ft, _ = nps.ar_predict(state, models[num_layers-1], batch["contexts"], xt_subsample, num_samples=1, order="random")
-            expaned_x_context = B.concat(*(batch["contexts"][0][0].squeeze((0, 1)), xt_subsample[0][0].squeeze((0, 1))))
-            expaned_y_context = B.concat(*(batch["contexts"][0][1].squeeze((0, 1)), ft[0].squeeze((0, 1, 2))))
-            batch["contexts"][0] = (B.expand_dims(expaned_x_context, axis=0, times=2), B.expand_dims(expaned_y_context, axis=0, times=2))
+            expaned_contexts = [(B.expand_dims(B.concat(*(batch["contexts"][0][0].squeeze((0, 1)), xt_subsample[0][0].squeeze((0, 1)))), axis=0, times=2),
+                                 B.expand_dims(B.concat(*(batch["contexts"][0][1].squeeze((0, 1)), ft[0].squeeze((0, 1, 2)))), axis=0, times=2))]
+        else:
+            expaned_contexts = batch["contexts"]
 
         for _ in range(num_samples):
 
@@ -52,6 +52,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
             contexts = batch["contexts"]
             for _ in range(num_layers-1):
                 contexts.append((empty, empty))
+                expaned_contexts.append((empty, empty))
 
             if config:
                 plt.figure(figsize=(8, 6 * num_layers))
@@ -65,7 +66,7 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
                 if level_index != 0:
                     state, _, _, _, yt = nps.predict(state,
                                                     models[level_index],
-                                                    contexts,
+                                                    contexts if level_index != num_layers-1 else expaned_contexts,
                                                     batch["xt"],
                                                     num_samples=1,
                                                     batch_size=1)
@@ -74,6 +75,8 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
 
                 if config:
                     plt.subplot(num_layers, 1, level_index+1)
+                    if level_index == num_layers-1:
+                        plt.scatter(expaned_contexts[0][0].squeeze(0), expaned_contexts[0][1].squeeze(0), label="AR Context", style="train", c="magenta", s=20)
                     plt.scatter(contexts[0][0].squeeze(0), contexts[0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
                     for j in range(num_layers):
                         if j>level_index:

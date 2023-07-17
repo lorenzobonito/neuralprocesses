@@ -385,9 +385,10 @@ if __name__ == "__main__":
     #     noised_gp = json.load(f)
     # plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
 
-    # 5 context points
-    with open("/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
-        cont_5 = json.load(f)
-    with open("/scratch/lb953/_experiments_pre_loguniform/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/logliks.json", "r") as f:
-        regular = json.load(f)
-    plot_hist_comparison_by_context([cont_5, regular], ["5 Context", "30 Context"], f"low_context_test")
+    # Compare AR context
+    ar_context_sizes = []
+    data = []
+    for ar_context_size in ar_context_sizes:
+        with open(f"/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/{ar_context_size}/logliks.json", "r") as f:
+            data.append(json.load(f))
+    plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison")
