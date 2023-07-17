@@ -33,6 +33,19 @@ def split_AR_prediction(state, models, batch, num_samples, normalise=True, path=
     with torch.no_grad():
 
         logpdfs = None
+        og_context_size = B.length(batch["contexts"][0][0])
+        desired_context_size = 10
+
+        if og_context_size < desired_context_size:
+            # Expanding context using AR until N points are available
+            # No option to set replace=False below, and cannot change that without Wessel
+            state, xt_subsample = B.choice(state, batch["xt"][0][0].squeeze((0, 1)), (desired_context_size-og_context_size))
+            xt_subsample = AggregateInput((B.expand_dims(xt_subsample, axis=0, times=2), 0))
+            state, _, _, ft, _ = nps.ar_predict(state, models[num_layers-1], batch["contexts"], xt_subsample, num_samples=1, order="random")
+            expaned_x_context = B.concat(*(batch["contexts"][0][0].squeeze((0, 1)), xt_subsample[0][0].squeeze((0, 1))))
+            expaned_y_context = B.concat(*(batch["contexts"][0][1].squeeze((0, 1)), ft[0].squeeze((0, 1, 2))))
+            batch["contexts"][0] = (B.expand_dims(expaned_x_context, axis=0, times=2), B.expand_dims(expaned_y_context, axis=0, times=2))
+
         for _ in range(num_samples):
 
             # Re-format context for noisiest layer

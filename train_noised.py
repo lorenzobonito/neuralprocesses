@@ -672,44 +672,44 @@ if __name__ == "__main__":
     # for proc in train_procs:
     #     proc.join()
 
-    # eval_procs = []
-    # for ar_samples in [250]:
-    #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "epochs":500,
-    #                            "noise_levels":LEVELS-1,
-    #                            "model_index":-1,
-    #                            "evaluate":True,
-    #                            "ar_samples":ar_samples,
-    #                            "gpu":0,
-    #                            "max_noise_var":0.08,})
-    #                         #    "same_xt":True})
-    #     eval_procs.append(proc)
-    #     proc.start()
-    # for proc in eval_procs:
-    #     proc.join()
+    eval_procs = []
+    for ar_samples in [100]:
+        proc = Process(target=main,
+                       kwargs={"data":"noised_sawtooth",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
+                               "model_index":-1,
+                               "evaluate":True,
+                               "ar_samples":ar_samples,
+                               "gpu":0,
+                               "max_noise_var":0.08,})
+                            #    "same_xt":True})
+        eval_procs.append(proc)
+        proc.start()
+    for proc in eval_procs:
+        proc.join()
 
-    # JOINT MODEL
-    train_proc = Process(target=main,
-                   kwargs={"data":"noised_sawtooth",
-                           "epochs":500,
-                           "dim_y":LEVELS,
-                           "gpu":1,
-                           "max_noise_var":0.02,})
-                        #    "same_xt":True})
-    train_proc.start()
-    train_proc.join()
-    eval_proc = Process(target=main,
-                   kwargs={"data":"noised_sawtooth",
-                           "epochs":500,
-                           "dim_y":LEVELS,
-                           "evaluate":True,
-                           "ar_samples":250,
-                           "gpu":1,
-                           "max_noise_var":0.02,})
-                        #    "same_xt":True})
-    eval_proc.start()
-    eval_proc.join()
+    # # JOINT MODEL
+    # train_proc = Process(target=main,
+    #                kwargs={"data":"noised_sawtooth",
+    #                        "epochs":500,
+    #                        "dim_y":LEVELS,
+    #                        "gpu":1,
+    #                        "max_noise_var":0.02,})
+    #                     #    "same_xt":True})
+    # train_proc.start()
+    # train_proc.join()
+    # eval_proc = Process(target=main,
+    #                kwargs={"data":"noised_sawtooth",
+    #                        "epochs":500,
+    #                        "dim_y":LEVELS,
+    #                        "evaluate":True,
+    #                        "ar_samples":250,
+    #                        "gpu":1,
+    #                        "max_noise_var":0.02,})
+    #                     #    "same_xt":True})
+    # eval_proc.start()
+    # eval_proc.join()
 
     # state = B.create_random_state(torch.float32, seed=0)
     # from neuralprocesses.dist import ReciprocalInt
