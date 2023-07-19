@@ -37,7 +37,7 @@ def _check_consistency(logliks: List[dict]):
     return num_models, num_datasets
 
 
-def _process_data(logliks: List[dict], avg_context: bool = True):
+def _process_data(logliks: List[dict], avg_context: bool = True, log: bool = False):
 
     num_models, num_datasets = _check_consistency(logliks)
     
@@ -45,9 +45,15 @@ def _process_data(logliks: List[dict], avg_context: bool = True):
     for d in range(num_datasets):
         for m in range(0, num_models):
             if m == 0:
-                datasets[d] = [logliks[m][str(d)][0], np.exp(logliks[m][str(d)][1])]
+                if log:
+                    datasets[d] = [logliks[m][str(d)][0], logliks[m][str(d)][1]]
+                else:
+                    datasets[d] = [logliks[m][str(d)][0], np.exp(logliks[m][str(d)][1])]
             else:
-                datasets[d].append(np.exp(logliks[m][str(d)][1]))
+                if log:
+                    datasets[d].append(logliks[m][str(d)][1])
+                else:
+                    datasets[d].append(np.exp(logliks[m][str(d)][1]))
     
     if avg_context:
         # Averaging over context sizes
@@ -69,12 +75,12 @@ def _process_data(logliks: List[dict], avg_context: bool = True):
     return out
 
 
-def plot_hist_comparison_by_context(logliks: List[dict], labels: List[str], filename: str):
+def plot_hist_comparison_by_context(logliks: List[dict], labels: List[str], filename: str, log: bool = False):
 
     assert len(logliks) == len(labels)
 
     num_models = len(logliks)
-    data = _process_data(logliks)
+    data = _process_data(logliks, True, log)
     pos = np.arange(0, len(data))
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:]
     colors.extend(colors)
@@ -124,13 +130,13 @@ def plot_hist_comparison_by_context(logliks: List[dict], labels: List[str], file
     plt.close()
 
 
-def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], filename: str):
+def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], filename: str, log: bool = False):
 
     assert len(logliks) == len(labels)
 
     num_models = len(logliks)
     num_context_points = []
-    data = _process_data(logliks, False)
+    data = _process_data(logliks, False, log)
     pos = np.arange(0, len(data), 1)
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][:]
 
@@ -385,10 +391,17 @@ if __name__ == "__main__":
     #     noised_gp = json.load(f)
     # plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
 
-    # Compare AR context
-    ar_context_sizes = []
-    data = []
-    for ar_context_size in ar_context_sizes:
-        with open(f"/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/{ar_context_size}/logliks.json", "r") as f:
-            data.append(json.load(f))
-    plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison")
+    # # Compare AR context
+    # ar_context_sizes = [0, 6, 8, 10, 12, 14, 16, 18, 20]
+    # data = []
+    # for ar_context_size in ar_context_sizes:
+    #     with open(f"/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/{ar_context_size}/logliks.json", "r") as f:
+    #         data.append(json.load(f))
+    # plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison", True)
+
+    # Compare fewer targets
+    with open("/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
+        few_targ = json.load(f)
+    with open("/scratch/lb953/_experiments_pre_less_targets/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
+        reg_targ = json.load(f)
+    plot_hist_comparison_by_context([few_targ, reg_targ], ["Variable targ (0-50)", "100 targets"], f"few_vs_many_targets_diff_targ_sizes")

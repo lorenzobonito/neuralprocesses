@@ -513,7 +513,8 @@ def main(**kw_args):
             model.load_state_dict(patch_model(torch.load(wd_train.file(name), map_location=device))["weights"])
 
         # Load different context sets
-        dataset = torch.load(f"benchmark_datasets/benchmark_dataset_{args.data}_{args.dim_y}_layers.pt", map_location=device)
+        # dataset = torch.load(f"benchmark_datasets/benchmark_dataset_{args.data}_{args.dim_y}_layers.pt", map_location=device)
+        dataset = torch.load(f"benchmark_datasets/benchmark_dataset_varTarg_{args.data}_{args.dim_y}_layers.pt", map_location=device)
         
         # Evaluate model predictions over context sets
         logliks = []
@@ -658,34 +659,35 @@ if __name__ == "__main__":
 
     LEVELS = 3
 
-    # # SPLIT MODEL
-    # train_procs = []
-    # for index in range(LEVELS):
-    #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "epochs":500,
-    #                            "noise_levels":LEVELS-1,
-    #                            "model_index":index,
-    #                            "gpu":0,
-    #                            "max_noise_var":0.08,})
-    #                         #    "same_xt":True})
-    #     train_procs.append(proc)
-    #     proc.start()
-    # for proc in train_procs:
-    #     proc.join()
-
-    eval_procs = []
-    for ar_context in [6, 8]:
+    # SPLIT MODEL
+    train_procs = []
+    for index in range(LEVELS):
         proc = Process(target=main,
                        kwargs={"data":"noised_sawtooth",
                                "epochs":500,
                                "noise_levels":LEVELS-1,
+                               "model_index":index,
+                               "gpu":0,
+                               "max_noise_var":0.02,})
+                            #    "same_xt":True})
+        train_procs.append(proc)
+        proc.start()
+    for proc in train_procs:
+        proc.join()
+
+    eval_procs = []
+    for ar_context in [0]:
+        proc = Process(target=main,
+                       kwargs={"data":"noised_sawtooth",
+                               "root": "_experiments",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
                                "model_index":-1,
                                "evaluate":True,
-                               "ar_samples":250,
+                               "ar_samples":300,
                                "ar_context":ar_context,
                                "gpu":0,
-                               "max_noise_var":0.08,})
+                               "max_noise_var":0.02,})
                             #    "same_xt":True})
         eval_procs.append(proc)
         proc.start()
@@ -697,22 +699,28 @@ if __name__ == "__main__":
     #                kwargs={"data":"noised_sawtooth",
     #                        "epochs":500,
     #                        "dim_y":LEVELS,
-    #                        "gpu":1,
+    #                        "gpu":0,
     #                        "max_noise_var":0.02,})
     #                     #    "same_xt":True})
     # train_proc.start()
     # train_proc.join()
-    # eval_proc = Process(target=main,
-    #                kwargs={"data":"noised_sawtooth",
-    #                        "epochs":500,
-    #                        "dim_y":LEVELS,
-    #                        "evaluate":True,
-    #                        "ar_samples":250,
-    #                        "gpu":1,
-    #                        "max_noise_var":0.02,})
-    #                     #    "same_xt":True})
-    # eval_proc.start()
-    # eval_proc.join()
+
+    # eval_procs = []
+    # for ar_samples in [100, 1000, 10000, 100000]:
+    #     proc = Process(target=main,
+    #                 kwargs={"data":"noised_sawtooth",
+    #                         "epochs":500,
+    #                         "dim_y":LEVELS,
+    #                         "evaluate":True,
+    #                         "ar_samples":ar_samples,
+    #                         "gpu":0,
+    #                         "max_noise_var":0.02,})
+    #                         #    "same_xt":True})
+    #     eval_procs.append(proc)
+    #     proc.start()
+
+    # for proc in eval_procs:
+    #     proc.join()
 
     # state = B.create_random_state(torch.float32, seed=0)
     # from neuralprocesses.dist import ReciprocalInt

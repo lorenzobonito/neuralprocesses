@@ -99,7 +99,7 @@ def construct_predefined_gens(
         noise=0,
         dist_freq=UniformContinuous(2 / factor, 4 / factor),
         num_context=UniformDiscrete(0, max_context),
-        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        num_target=UniformDiscrete(5 * dim_x, 50 * dim_x),
         **config,
     )
     
@@ -112,8 +112,8 @@ def construct_predefined_gens(
         noise_levels=noise_levels,
         beta=beta,
         same_xt=same_xt,
-        num_context=UniformDiscrete(0, 5),
-        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        num_context=UniformDiscrete(0, max_context),
+        num_target=UniformDiscrete(5 * dim_x, 50 * dim_x),
         **config,
     )
 
@@ -124,7 +124,7 @@ def construct_predefined_gens(
         noise_levels=noise_levels,
         beta=beta,
         num_context=UniformDiscrete(0, max_context),
-        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        num_target=UniformDiscrete(5 * dim_x, 50 * dim_x),
         **config,
     )
 
@@ -136,7 +136,7 @@ def construct_predefined_gens(
         noise_levels=noise_levels,
         beta=beta,
         num_context=UniformDiscrete(0, max_context),
-        num_target=UniformDiscrete(50 * dim_x, 50 * dim_x),
+        num_target=UniformDiscrete(5 * dim_x, 50 * dim_x),
         pred_logpdf=pred_logpdf,
         pred_logpdf_diag=pred_logpdf_diag,
         **config,

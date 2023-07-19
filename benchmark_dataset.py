@@ -22,7 +22,7 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
             dist_freq=UniformContinuous(2 / B.sqrt(DIM_X), 4 / B.sqrt(DIM_X)),
             noise_levels=0,
             num_context=UniformDiscrete(num_context, num_context),
-            num_target=UniformDiscrete(100 * DIM_X, 100 * DIM_X),
+            num_target=UniformDiscrete(5 * DIM_X, 50 * DIM_X),
             **config,
         )
     elif gen_type.lower() == "noised_square_wave":
@@ -32,7 +32,7 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
             noise=0,
             noise_levels=0,
             num_context=UniformDiscrete(num_context, num_context),
-            num_target=UniformDiscrete(100 * DIM_X, 100 * DIM_X),
+            num_target=UniformDiscrete(5 * DIM_X, 50 * DIM_X),
             **config,
         )
     elif gen_type.lower() == "noised_gp":
@@ -42,7 +42,7 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
             noise=0,
             noise_levels=0,
             num_context=UniformDiscrete(num_context, num_context),
-            num_target=UniformDiscrete(50 * DIM_X, 50 * DIM_X),
+            num_target=UniformDiscrete(5 * DIM_X, 50 * DIM_X),
             **config,
         )
     else:
@@ -57,10 +57,10 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
 
 if __name__ == "__main__":
 
-    DIM_Y = 6
-    # GEN_TYPE = "noised_sawtooth" 
+    DIM_Y = 1
+    GEN_TYPE = "noised_sawtooth" 
     # GEN_TYPE = "noised_square_wave"
-    GEN_TYPE = "noised_gp"
+    # GEN_TYPE = "noised_gp"
 
     config = {
             "num_tasks": 1,
@@ -86,4 +86,4 @@ if __name__ == "__main__":
         batch["xt"] = AggregateInput(*xts)
         batch["yt"] = Aggregate(*yts)
 
-    torch.save(batches, f"benchmark_dataset_{GEN_TYPE}_{DIM_Y}_layers.pt")
+    torch.save(batches, f"benchmark_dataset_varTarg_{GEN_TYPE}_{DIM_Y}_layers.pt")
