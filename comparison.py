@@ -391,17 +391,33 @@ if __name__ == "__main__":
     #     noised_gp = json.load(f)
     # plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
 
-    # # Compare AR context
-    # ar_context_sizes = [0, 6, 8, 10, 12, 14, 16, 18, 20]
-    # data = []
-    # for ar_context_size in ar_context_sizes:
-    #     with open(f"/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/{ar_context_size}/logliks.json", "r") as f:
-    #         data.append(json.load(f))
-    # plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison", True)
+    # Compare AR context
+    ar_context_sizes = [0, 6, 8, 10, 12, 14, 16, 18, 20]
+    data = []
+    for ar_context_size in ar_context_sizes:
+        with open(f"/scratch/lb953/_experiments_pre_less_targets/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_100_targ/250/{ar_context_size}/logliks.json", "r") as f:
+            data.append(json.load(f))
+    plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison", False)
 
-    # Compare fewer targets
-    with open("/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
-        few_targ = json.load(f)
-    with open("/scratch/lb953/_experiments_pre_less_targets/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
-        reg_targ = json.load(f)
-    plot_hist_comparison_by_context([few_targ, reg_targ], ["Variable targ (0-50)", "100 targets"], f"few_vs_many_targets_diff_targ_sizes")
+    # # Compare fewer targets
+    # with open("/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
+    #     few_targ = json.load(f)
+    # with open("/scratch/lb953/_experiments_pre_less_targets/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
+    #     reg_targ = json.load(f)
+    # plot_hist_comparison_by_context([few_targ, reg_targ], ["Variable targ (0-50)", "100 targets"], f"few_vs_many_targets_diff_targ_sizes")
+
+    # # More GP results
+    # data = []
+    # for ar_samples in [100, 1000, 10000]:
+    #     with open(f"/scratch/lb953/_experiments/noised_gp/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/{ar_samples}/0/logliks.json", "r") as f:
+    #         data.append(json.load(f))
+    # with open("/scratch/lb953/_experiments/noised_gp/split/3_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/300/0/logliks.json", "r") as f:
+    #     data.append(json.load(f))
+    # plot_hist_comparison_by_context(data, ["Joint 100", "Joint 1000", "Joint 10000", "Split 300"], f"noised_gp")
+
+    # # Compare GP with baseline
+    # with open(f"/scratch/lb953/_experiments/noised_gp/joint/3_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/10000/0/logliks.json", "r") as f:
+    #     joint_10k = json.load(f)
+    # with open(f"_experiments/noised_gp/joint/1_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
+    #     baseline = json.load(f)
+    # plot_hist_comparison_by_context([baseline, joint_10k], ["Baseline", "Joint 10000"], f"noised_gp_baseline")

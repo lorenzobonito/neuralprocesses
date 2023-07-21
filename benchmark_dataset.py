@@ -57,10 +57,10 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, config: dict)
 
 if __name__ == "__main__":
 
-    DIM_Y = 1
-    GEN_TYPE = "noised_sawtooth" 
+    DIM_Y = 3
+    # GEN_TYPE = "noised_sawtooth" 
     # GEN_TYPE = "noised_square_wave"
-    # GEN_TYPE = "noised_gp"
+    GEN_TYPE = "noised_gp"
 
     config = {
             "num_tasks": 1,

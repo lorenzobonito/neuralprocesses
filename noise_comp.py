@@ -21,6 +21,9 @@ def calculate_SNR(A_s, sigma_n):
 
 def compute_beta(final_noise_var, num_levels):
 
+    if num_levels is None:
+        return 0
+
     beta_init = 0.1
 
     def func(beta, var, x):
