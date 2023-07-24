@@ -61,7 +61,9 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
             for level_index in range(num_layers-1, -1, -1):
 
                 if config:
-                    state, pred = models[level_index](state, contexts, x)
+                    state, pred = models[level_index](state,
+                                                      contexts if level_index != num_layers-1 else expaned_contexts,
+                                                      x)
 
                 if level_index != 0:
                     state, _, _, _, yt = nps.predict(state,
@@ -139,10 +141,12 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
     return state, logpdfs
 
 
-def joint_AR_prediction(state, model, batch, num_samples, normalise=True, path=None, config=None):
+def joint_AR_prediction(state, model, batch, num_samples, ar_context, normalise=True, path=None, config=None):
 
     true_y0t = mask_yt(batch["yt"], 0)
     num_layers = len(batch["xt"])
+    batch_size = batch["contexts"][0][0].shape[0]
+    empty = B.randn(torch.float32, batch_size, 1, 0)
     float = B.dtype_float(true_y0t)
     float64 = B.promote_dtypes(float, np.float64)
     
@@ -164,10 +168,25 @@ def joint_AR_prediction(state, model, batch, num_samples, normalise=True, path=N
     with torch.no_grad():
 
         logpdfs = None
+        og_context_size = B.length(batch["contexts"][0][0])
+
+        if og_context_size < ar_context:
+            state, xt_choice = B.choice(state, batch["xt"][num_layers-1][0].squeeze((0, 1)), (ar_context-og_context_size))
+            xt_subsample = [(empty, i) for i in range(num_layers-1)]
+            xt_subsample.append((B.expand_dims(xt_choice, axis=0, times=2), num_layers-1))
+            xt_subsample = AggregateInput(*xt_subsample)
+            state, _, _, ft, _ = nps.ar_predict(state, model, batch["contexts"], xt_subsample, num_samples=1, order="random")
+            expaned_contexts = [(B.expand_dims(B.concat(*(batch["contexts"][0][0].squeeze((0, 1)), xt_subsample[num_layers-1][0].squeeze((0, 1)))), axis=0, times=2),
+                                 B.expand_dims(B.concat(*(batch["contexts"][0][1].squeeze((0, 1)), ft[num_layers-1].squeeze((0, 1, 2)))), axis=0, times=2))]
+            expaned_contexts.extend([(empty, empty) for _ in range(num_layers-1)])
+        else:
+            expaned_contexts = batch["contexts"]
+
         for _ in range(num_samples):
 
             # Mask context for noisiest layer
             contexts = mask_contexts(batch["contexts"], num_layers-1)
+            expaned_contexts = mask_contexts(expaned_contexts, num_layers-1)
 
             if config:
                 plt.figure(figsize=(8, 6 * num_layers))
@@ -177,13 +196,15 @@ def joint_AR_prediction(state, model, batch, num_samples, normalise=True, path=N
 
                 if config:
                     l_x = mask_xt(x, level_index)
-                    state, pred = model(state, contexts, l_x)
+                    state, pred = model(state,
+                                        contexts if level_index != num_layers-1 else expaned_contexts,
+                                        l_x)
 
                 if level_index != 0:
                     l_xt = mask_xt(batch["xt"], level_index)
                     state, _, _, _, yt = nps.predict(state,
                                                     model,
-                                                    contexts,
+                                                    contexts if level_index != num_layers-1 else expaned_contexts,
                                                     l_xt,
                                                     num_samples=1,
                                                     batch_size=1)
@@ -192,6 +213,8 @@ def joint_AR_prediction(state, model, batch, num_samples, normalise=True, path=N
 
                 if config:
                     plt.subplot(num_layers, 1, level_index+1)
+                    if level_index == num_layers-1 and ar_context != 0:
+                        plt.scatter(expaned_contexts[0][0].squeeze(0), expaned_contexts[0][1].squeeze(0), label="AR Context", style="train", c="magenta", s=20)
                     plt.scatter(contexts[0][0].squeeze(0), contexts[0][1].squeeze(0), label="Original Context", style="train", c="blue", s=20)
                     for j in range(num_layers):
                         if j>level_index:

@@ -391,13 +391,13 @@ if __name__ == "__main__":
     #     noised_gp = json.load(f)
     # plot_hist_comparison_by_context([noised_gp], ["Noised GP"], f"noised_gp")
 
-    # Compare AR context
-    ar_context_sizes = [0, 6, 8, 10, 12, 14, 16, 18, 20]
-    data = []
-    for ar_context_size in ar_context_sizes:
-        with open(f"/scratch/lb953/_experiments_pre_less_targets/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_100_targ/250/{ar_context_size}/logliks.json", "r") as f:
-            data.append(json.load(f))
-    plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison", False)
+    # # Compare AR context
+    # ar_context_sizes = [0, 6, 8, 10, 12, 14, 16, 18, 20]
+    # data = []
+    # for ar_context_size in ar_context_sizes:
+    #     with open(f"/scratch/lb953/_experiments_pre_less_targets/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_100_targ/250/{ar_context_size}/logliks.json", "r") as f:
+    #         data.append(json.load(f))
+    # plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison", False)
 
     # # Compare fewer targets
     # with open("/scratch/lb953/_experiments/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/250/0/logliks.json", "r") as f:
@@ -421,3 +421,11 @@ if __name__ == "__main__":
     # with open(f"_experiments/noised_gp/joint/1_layers/convcnp/unet/s64_n6_k5/0.02_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
     #     baseline = json.load(f)
     # plot_hist_comparison_by_context([baseline, joint_10k], ["Baseline", "Joint 10000"], f"noised_gp_baseline")
+
+    # More AR context comparison
+    ar_context_sizes = [0, 10, 20, 40, 60]
+    data = []
+    for ar_context_size in ar_context_sizes:
+        with open(f"/scratch/lb953/_experiments_60context/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/200/{ar_context_size}/logliks.json", "r") as f:
+            data.append(json.load(f))
+    plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison_60_cont_size", False)

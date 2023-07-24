@@ -55,6 +55,8 @@ def _determine_order(
                 buckets[i_xt].append(y[..., i_y : i_y + 1])
             # Now sort the buckets.
             buckets = [[bucket[j] for j in p] for bucket, p in zip(buckets, inv_perms)]
+            # Remove empty buckets
+            buckets = [bucket for bucket in buckets if bucket != []]
             # Concatenate and return.
             return Aggregate(*(B.concat(*bucket, axis=-1) for bucket in buckets))
 
