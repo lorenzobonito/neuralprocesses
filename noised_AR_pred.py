@@ -11,7 +11,10 @@ from batch_masking import mask_contexts, mask_xt, mask_yt
 __all__ = ["joint_AR_prediction", "split_AR_prediction"]
 
 
-def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise=True, path=None, config=None):
+def split_AR_prediction(state, models, batch, num_samples, ar_context, prop_context: bool = False, normalise=True, path=None, config=None):
+
+    if prop_context and ar_context != 0:
+        raise ValueError("AR context process not implemented for proportional context.")
 
     true_y0t = batch["yt"]
     num_layers = len(models)
@@ -30,16 +33,19 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
         x = B.linspace(B.dtype(batch["xt"]), *plot_config["range"], 200)
         x = nps.AggregateInput((x[None, None, :], 0))
 
+    og_context_size = B.length(batch["contexts"][0][0])
+
     with torch.no_grad():
 
         logpdfs = None
-        og_context_size = B.length(batch["contexts"][0][0])
 
         if og_context_size < ar_context:
-            # Expanding context using AR until N points are available
-            # No option to set replace=False below, and cannot change that without Wessel
-            state, xt_subsample = B.choice(state, batch["xt"][0][0].squeeze((0, 1)), (ar_context-og_context_size))
-            xt_subsample = AggregateInput((B.expand_dims(xt_subsample, axis=0, times=2), 0))
+            xt_reshape = batch["xt"][0][0].squeeze((0, 1))
+            perm = torch.IntTensor(B.randperm(len(xt_reshape))).to(xt_reshape.device)
+            xt_choice = torch.index_select(xt_reshape, 0, perm[:ar_context-og_context_size])
+            # Line below allows for duplicates, which is not ideal
+            # state, xt_choice = B.choice(state, batch["xt"][0][0].squeeze((0, 1)), (ar_context-og_context_size))
+            xt_subsample = AggregateInput((B.expand_dims(xt_choice, axis=0, times=2), 0))
             state, _, _, ft, _ = nps.ar_predict(state, models[num_layers-1], batch["contexts"], xt_subsample, num_samples=1, order="random")
             expaned_contexts = [(B.expand_dims(B.concat(*(batch["contexts"][0][0].squeeze((0, 1)), xt_subsample[0][0].squeeze((0, 1)))), axis=0, times=2),
                                  B.expand_dims(B.concat(*(batch["contexts"][0][1].squeeze((0, 1)), ft[0].squeeze((0, 1, 2)))), axis=0, times=2))]
@@ -54,11 +60,26 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
                 contexts.append((empty, empty))
                 expaned_contexts.append((empty, empty))
 
+            prop_xt_size = 5*og_context_size
+            max_xt_size = B.length(batch["xt"][0][0])
+            if prop_xt_size < 20:
+                prop_xt_size = 20
+
             if config:
                 plt.figure(figsize=(8, 6 * num_layers))
                 colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
 
             for level_index in range(num_layers-1, -1, -1):
+
+                if prop_context and level_index != 0:
+                    # Generate proportional targets
+                    xt_reshape = batch["xt"][0][0].squeeze((0, 1))
+                    perm = torch.IntTensor(B.randperm(len(xt_reshape))).to(xt_reshape.device)
+                    xt_choice = torch.index_select(xt_reshape, 0, perm[:prop_xt_size])
+                    xt_prop = AggregateInput((B.expand_dims(xt_choice, axis=0, times=2), 0))
+                    prop_xt_size = prop_xt_size * 2
+                    if prop_xt_size > max_xt_size:
+                        prop_xt_size = max_xt_size
 
                 if config:
                     state, pred = models[level_index](state,
@@ -69,11 +90,11 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
                     state, _, _, _, yt = nps.predict(state,
                                                     models[level_index],
                                                     contexts if level_index != num_layers-1 else expaned_contexts,
-                                                    batch["xt"],
+                                                    xt_prop if prop_context else batch["xt"],
                                                     num_samples=1,
                                                     batch_size=1)
                     l_yt = yt[0].squeeze(0).float()
-                    contexts[level_index] = (batch["xt"][0][0], l_yt)
+                    contexts[level_index] = (xt_prop[0][0] if prop_context else batch["xt"][0][0], l_yt)
 
                 if config:
                     plt.subplot(num_layers, 1, level_index+1)
@@ -109,7 +130,7 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
                     )
 
                     if level_index != 0:
-                        plt.scatter(batch["xt"][0][0], l_yt, marker="s", c="black", s=10, label="Prediction sample")
+                        plt.scatter(xt_prop[0][0] if prop_context else batch["xt"][0][0], l_yt, marker="s", c="black", s=10, label="Prediction sample")
 
                     for x_axvline in plot_config["axvline"]:
                         plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
@@ -141,7 +162,10 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, normalise
     return state, logpdfs
 
 
-def joint_AR_prediction(state, model, batch, num_samples, ar_context, normalise=True, path=None, config=None):
+def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_context: bool = False, normalise=True, path=None, config=None):
+
+    if prop_context and ar_context != 0:
+        raise ValueError("AR context process not implemented for proportional context.")
 
     true_y0t = mask_yt(batch["yt"], 0)
     num_layers = len(batch["xt"])
@@ -165,13 +189,22 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, normalise=
         # Both options should be investigated.
         batch["xt"] = AggregateInput(*((batch["xt"][0][0], i) for i in range(num_layers)))
 
+    og_context_size = B.length(batch["contexts"][0][0])
+    max_xt_size = B.length(batch["xt"][0][0])
+    prop_xt_size = 3*og_context_size
+    if prop_xt_size < 5:
+        prop_xt_size = 5
+
     with torch.no_grad():
 
         logpdfs = None
-        og_context_size = B.length(batch["contexts"][0][0])
 
         if og_context_size < ar_context:
-            state, xt_choice = B.choice(state, batch["xt"][num_layers-1][0].squeeze((0, 1)), (ar_context-og_context_size))
+            xt_reshape = batch["xt"][num_layers-1][0].squeeze((0, 1))
+            perm = torch.IntTensor(B.randperm(len(xt_reshape))).to(xt_reshape.device)
+            xt_choice = torch.index_select(xt_reshape, 0, perm[:ar_context-og_context_size])
+            # Line below allows for duplicates, which is not ideal
+            # state, xt_choice = B.choice(state, batch["xt"][num_layers-1][0].squeeze((0, 1)), (ar_context-og_context_size))
             xt_subsample = [(empty, i) for i in range(num_layers-1)]
             xt_subsample.append((B.expand_dims(xt_choice, axis=0, times=2), num_layers-1))
             xt_subsample = AggregateInput(*xt_subsample)

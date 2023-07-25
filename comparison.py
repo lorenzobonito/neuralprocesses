@@ -422,10 +422,17 @@ if __name__ == "__main__":
     #     baseline = json.load(f)
     # plot_hist_comparison_by_context([baseline, joint_10k], ["Baseline", "Joint 10000"], f"noised_gp_baseline")
 
-    # More AR context comparison
-    ar_context_sizes = [0, 10, 20, 40, 60]
-    data = []
-    for ar_context_size in ar_context_sizes:
-        with open(f"/scratch/lb953/_experiments_60context/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/200/{ar_context_size}/logliks.json", "r") as f:
-            data.append(json.load(f))
-    plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison_60_cont_size", False)
+    # # More AR context comparison
+    # ar_context_sizes = [0, 10, 20, 40, 60]
+    # data = []
+    # for ar_context_size in ar_context_sizes:
+    #     with open(f"/scratch/lb953/_experiments_60context/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval/200/{ar_context_size}/logliks.json", "r") as f:
+    #         data.append(json.load(f))
+    # plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison_60_cont_size", False)
+
+    # Proportional context comparison
+    with open("/scratch/lb953/_experiments_prop_cont/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_no_prop_cont/200/0/logliks.json", "r") as f:
+        no_prop_cont = json.load(f)
+    with open("/scratch/lb953/_experiments_prop_cont/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_with_prop_cont/200/0/logliks.json", "r") as f:
+        prop_cont = json.load(f)
+    plot_hist_comparison_by_context([no_prop_cont, prop_cont], ["No prop cont", "Prop cont"], f"prop_cont_comparison", False)

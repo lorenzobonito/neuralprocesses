@@ -521,9 +521,9 @@ def main(**kw_args):
         json_data = {}
         for idx, batch in enumerate(dataset):
             if args.model_index is not None:
-                state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, ar_context=args.ar_context, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
+                state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, ar_context=args.ar_context, prop_context=False, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             else:
-                state, loglik = joint_AR_prediction(state, model, batch, num_samples=args.ar_samples, ar_context=args.ar_context, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
+                state, loglik = joint_AR_prediction(state, model, batch, num_samples=args.ar_samples, ar_context=args.ar_context, prop_context=False, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             logliks.append(loglik)
             json_data[idx] = (batch["contexts"][0][0].numel(), loglik.item())
             out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *loglik))
@@ -664,11 +664,11 @@ if __name__ == "__main__":
     # for index in range(LEVELS):
     #     proc = Process(target=main,
     #                    kwargs={"data":"noised_sawtooth",
-    #                            "root": "_experiments_60context",
+    #                            "root": "_experiments_prop_cont",
     #                            "epochs":500,
     #                            "noise_levels":LEVELS-1,
     #                            "model_index":index,
-    #                            "gpu":1,
+    #                            "gpu":0,
     #                            "max_noise_var":0.08,})
     #                         #    "same_xt":True})
     #     train_procs.append(proc)
@@ -676,24 +676,24 @@ if __name__ == "__main__":
     # for proc in train_procs:
     #     proc.join()
 
-    # eval_procs = []
-    # for ar_context in [10]:
-    #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "root": "_experiments_meeting_21_Jul",
-    #                            "epochs":500,
-    #                            "noise_levels":LEVELS-1,
-    #                            "model_index":-1,
-    #                            "evaluate":True,
-    #                            "ar_samples":200,
-    #                            "ar_context":ar_context,
-    #                            "gpu":1,
-    #                            "max_noise_var":0.02,})
-    #                         #    "same_xt":True})
-    #     eval_procs.append(proc)
-    #     proc.start()
-    # for proc in eval_procs:
-    #     proc.join()
+    eval_procs = []
+    for ar_context in [0]:
+        proc = Process(target=main,
+                       kwargs={"data":"noised_sawtooth",
+                               "root": "_experiments_prop_cont",
+                               "epochs":500,
+                               "noise_levels":LEVELS-1,
+                               "model_index":-1,
+                               "evaluate":True,
+                               "ar_samples":200,
+                               "ar_context":ar_context,
+                               "gpu":0,
+                               "max_noise_var":0.08,})
+                            #    "same_xt":True})
+        eval_procs.append(proc)
+        proc.start()
+    for proc in eval_procs:
+        proc.join()
 
     # # JOINT MODEL
     # train_proc = Process(target=main,
@@ -708,25 +708,25 @@ if __name__ == "__main__":
     # train_proc.start()
     # train_proc.join()
 
-    eval_procs = []
-    for ar_context in [0, 10, 20]:
-        proc = Process(target=main,
-                    kwargs={"data":"noised_sawtooth",
-                            "root": "_experiments_joint_ARcontext",
-                            "epochs":500,
-                            "dim_y":LEVELS,
-                            "noise_levels":0,
-                            "evaluate":True,
-                            "ar_samples":1000,
-                            "ar_context":ar_context,
-                            "gpu":0,
-                            "max_noise_var":0.02,})
-                            #    "same_xt":True})
-        eval_procs.append(proc)
-        proc.start()
+    # eval_procs = []
+    # for ar_context in [10]:
+    #     proc = Process(target=main,
+    #                 kwargs={"data":"noised_sawtooth",
+    #                         "root": "_experiments_joint_ARcontext",
+    #                         "epochs":500,
+    #                         "dim_y":LEVELS,
+    #                         "noise_levels":0,
+    #                         "evaluate":True,
+    #                         "ar_samples":1,
+    #                         "ar_context":ar_context,
+    #                         "gpu":0,
+    #                         "max_noise_var":0.02,})
+    #                         #    "same_xt":True})
+    #     eval_procs.append(proc)
+    #     proc.start()
 
-    for proc in eval_procs:
-        proc.join()
+    # for proc in eval_procs:
+    #     proc.join()
 
     # # state = B.create_random_state(torch.float32, seed=0)
     # # from neuralprocesses.dist import ReciprocalInt
