@@ -699,7 +699,7 @@ if __name__ == "__main__":
     # train_proc = Process(target=main,
     #                kwargs={"data":"noised_sawtooth",
     #                        "root": "_experiments_joint_ARcontext",
-    #                        "epochs":500,
+    #                        "epochs":5,
     #                        "dim_y":LEVELS,
     #                        "noise_levels":0,
     #                        "gpu":0,
@@ -713,12 +713,12 @@ if __name__ == "__main__":
         proc = Process(target=main,
                     kwargs={"data":"noised_sawtooth",
                             "root": "_experiments_joint_ARcontext",
-                            "epochs":500,
+                            "epochs":5,
                             "dim_y":LEVELS,
                             "noise_levels":0,
                             "evaluate":True,
                             "ar_samples":1,
-                            "ar_context":ar_context,
+                            "ar_context":0,
                             "gpu":0,
                             "max_noise_var":0.02,})
                             #    "same_xt":True})

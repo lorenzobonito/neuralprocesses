@@ -233,10 +233,7 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
                     xt_reshape = batch["xt"][level_index][0].squeeze((0, 1))
                     perm = torch.IntTensor(B.randperm(len(xt_reshape))).to(xt_reshape.device)
                     xt_choice = torch.index_select(xt_reshape, 0, perm[:prop_xt_size])
-                    print(xt_choice)
-                    import sys
-                    sys.exit(1)
-                    xt_prop = AggregateInput(*(B.expand_dims(xt_choice, axis=0, times=2), 0))
+                    xt_prop = AggregateInput(*((B.expand_dims(xt_choice, axis=0, times=2), i) for i in range(num_layers)))
                     prop_xt_size = prop_xt_size * 2
                     if prop_xt_size > max_xt_size:
                         prop_xt_size = max_xt_size
@@ -248,7 +245,7 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
                                         l_x)
 
                 if level_index != 0:
-                    l_xt = mask_xt(batch["xt"], level_index)
+                    l_xt = mask_xt(xt_prop if prop_context else batch["xt"], level_index)
                     state, _, _, _, yt = nps.predict(state,
                                                     model,
                                                     contexts if level_index != num_layers-1 else expaned_contexts,
