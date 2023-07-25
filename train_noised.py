@@ -695,29 +695,27 @@ if __name__ == "__main__":
     # for proc in eval_procs:
     #     proc.join()
 
-    # # JOINT MODEL
-    # train_proc = Process(target=main,
-    #                kwargs={"data":"noised_sawtooth",
-    #                        "root": "_experiments_joint_ARcontext",
-    #                        "epochs":5,
-    #                        "dim_y":LEVELS,
-    #                        "noise_levels":0,
-    #                        "gpu":0,
-    #                        "max_noise_var":0.02,})
-    #                     #    "same_xt":True})
-    # train_proc.start()
-    # train_proc.join()
+    # JOINT MODEL
+    train_proc = Process(target=main,
+                   kwargs={"data":"noised_sawtooth",
+                           "root": "_experiments_prop_cont",
+                           "epochs":500,
+                           "dim_y":LEVELS,
+                           "gpu":0,
+                           "max_noise_var":0.02,})
+                        #    "same_xt":True})
+    train_proc.start()
+    train_proc.join()
 
     eval_procs = []
     for ar_context in [10]:
         proc = Process(target=main,
                     kwargs={"data":"noised_sawtooth",
-                            "root": "_experiments_joint_ARcontext",
-                            "epochs":5,
+                            "root": "_experiments_prop_cont",
+                            "epochs":500,
                             "dim_y":LEVELS,
-                            "noise_levels":0,
                             "evaluate":True,
-                            "ar_samples":1,
+                            "ar_samples":1000,
                             "ar_context":0,
                             "gpu":0,
                             "max_noise_var":0.02,})
