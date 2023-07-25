@@ -190,10 +190,6 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
         batch["xt"] = AggregateInput(*((batch["xt"][0][0], i) for i in range(num_layers)))
 
     og_context_size = B.length(batch["contexts"][0][0])
-    max_xt_size = B.length(batch["xt"][0][0])
-    prop_xt_size = 3*og_context_size
-    if prop_xt_size < 5:
-        prop_xt_size = 5
 
     with torch.no_grad():
 
@@ -221,11 +217,29 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
             contexts = mask_contexts(batch["contexts"], num_layers-1)
             expaned_contexts = mask_contexts(expaned_contexts, num_layers-1)
 
+            prop_xt_size = 5*og_context_size
+            max_xt_size = B.length(batch["xt"][0][0])
+            if prop_xt_size < 20:
+                prop_xt_size = 20
+
             if config:
                 plt.figure(figsize=(8, 6 * num_layers))
                 colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
 
             for level_index in range(num_layers-1, -1, -1):
+
+                if prop_context and level_index != 0:
+                    # Generate proportional targets
+                    xt_reshape = batch["xt"][level_index][0].squeeze((0, 1))
+                    perm = torch.IntTensor(B.randperm(len(xt_reshape))).to(xt_reshape.device)
+                    xt_choice = torch.index_select(xt_reshape, 0, perm[:prop_xt_size])
+                    print(xt_choice)
+                    import sys
+                    sys.exit(1)
+                    xt_prop = AggregateInput(*(B.expand_dims(xt_choice, axis=0, times=2), 0))
+                    prop_xt_size = prop_xt_size * 2
+                    if prop_xt_size > max_xt_size:
+                        prop_xt_size = max_xt_size
 
                 if config:
                     l_x = mask_xt(x, level_index)
