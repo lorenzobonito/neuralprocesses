@@ -145,7 +145,7 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, prop_cont
             config = False
             
             state, pred = models[level_index](state, contexts, batch["xt"])
-            this_logpdfs = pred.logpdf(B.cast(float64, true_y0t))
+            this_logpdfs = pred.logpdf(B.cast(torch.float32, true_y0t))
 
             if logpdfs is None:
                 logpdfs = this_logpdfs
@@ -306,7 +306,7 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
             l_xt = mask_xt(batch["xt"], 0)
             state, pred = model(state, contexts, l_xt)
 
-            this_logpdfs = pred.logpdf(B.cast(float64, true_y0t))
+            this_logpdfs = pred.logpdf(B.cast(torch.float32, true_y0t))
 
             if logpdfs is None:
                 logpdfs = this_logpdfs

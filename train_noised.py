@@ -141,6 +141,16 @@ def main(**kw_args):
     parser.add_argument("--rate", type=float)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument(
+        "--model",
+        choices=[
+            "convcnp",
+            "convgnp",
+            # "fullconvgnp",
+        ],
+        default="convcnp",
+    )
+
+    parser.add_argument(
         "--arch",
         choices=[
             "unet",
@@ -257,7 +267,7 @@ def main(**kw_args):
             data_dir,
             "split" if args.model_index is not None else "joint",
             f"{args.noise_levels+1}_layers" if args.model_index is not None else f"{args.dim_y}_layers",
-            "convcnp",
+            args.model,
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             f"{args.max_noise_var}_var",
@@ -357,24 +367,43 @@ def main(**kw_args):
         # See if the experiment constructed the particular flavour of the model already.
         model = config["model"]
     else:
-        # ConvCNP
-        model = nps.construct_convgnp(
-            points_per_unit=config["points_per_unit"],
-            dim_x=config["dim_x"],
-            dim_yc=(1,) * (noise_levels+1),
-            dim_yt=config["dim_y"],
-            likelihood="het",
-            conv_arch=args.arch,
-            unet_channels=config["unet_channels"],
-            unet_kernels=config["unet_kernels"],
-            unet_strides=config["unet_strides"],
-            conv_channels=config["conv_channels"],
-            conv_layers=config["num_layers"],
-            conv_receptive_field=config["conv_receptive_field"],
-            margin=config["margin"],
-            encoder_scales=config["encoder_scales"],
-            transform=config["transform"],
-        )
+        if args.model == "convcnp":
+            model = nps.construct_convgnp(
+                points_per_unit=config["points_per_unit"],
+                dim_x=config["dim_x"],
+                dim_yc=(1,) * (noise_levels+1),
+                dim_yt=config["dim_y"],
+                likelihood="het",
+                conv_arch=args.arch,
+                unet_channels=config["unet_channels"],
+                unet_kernels=config["unet_kernels"],
+                unet_strides=config["unet_strides"],
+                conv_channels=config["conv_channels"],
+                conv_layers=config["num_layers"],
+                conv_receptive_field=config["conv_receptive_field"],
+                margin=config["margin"],
+                encoder_scales=config["encoder_scales"],
+                transform=config["transform"],
+            )
+        elif args.model == "convgnp":
+            model = nps.construct_convgnp(
+                points_per_unit=config["points_per_unit"],
+                dim_x=config["dim_x"],
+                dim_yc=(1,) * (noise_levels+1),
+                dim_yt=config["dim_y"],
+                likelihood="lowrank",
+                conv_arch=args.arch,
+                unet_channels=config["unet_channels"],
+                unet_kernels=config["unet_kernels"],
+                unet_strides=config["unet_strides"],
+                conv_channels=config["conv_channels"],
+                conv_layers=config["num_layers"],
+                conv_receptive_field=config["conv_receptive_field"],
+                num_basis_functions=config["num_basis_functions"],
+                margin=config["margin"],
+                encoder_scales=config["encoder_scales"],
+                transform=config["transform"],
+            )
 
     # Settings specific for the model:
     if config["fix_noise"] is None:
@@ -430,7 +459,7 @@ def main(**kw_args):
             data_dir,
             "split" if args.model_index is not None else "joint",
             f"{args.noise_levels+1}_layers" if args.model_index is not None else f"{args.dim_y}_layers",
-            "convcnp",
+            args.model,
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
             f"{args.max_noise_var}_var",
@@ -470,31 +499,50 @@ def main(**kw_args):
                 raise ValueError("model_index parameter must be set to -1 when evaluating.")
             models = []
             for index in range(args.noise_levels+1):
-                # ConvCNP
-                model = nps.construct_convgnp(
-                    points_per_unit=config["points_per_unit"],
-                    dim_x=config["dim_x"],
-                    dim_yc=(1,) * (noise_levels+1),
-                    dim_yt=config["dim_y"],
-                    likelihood="het",
-                    conv_arch=args.arch,
-                    unet_channels=config["unet_channels"],
-                    unet_kernels=config["unet_kernels"],
-                    unet_strides=config["unet_strides"],
-                    conv_channels=config["conv_channels"],
-                    conv_layers=config["num_layers"],
-                    conv_receptive_field=config["conv_receptive_field"],
-                    margin=config["margin"],
-                    encoder_scales=config["encoder_scales"],
-                    transform=config["transform"],
-                )
+                if args.model == "convcnp":
+                    model = nps.construct_convgnp(
+                        points_per_unit=config["points_per_unit"],
+                        dim_x=config["dim_x"],
+                        dim_yc=(1,) * (noise_levels+1),
+                        dim_yt=config["dim_y"],
+                        likelihood="het",
+                        conv_arch=args.arch,
+                        unet_channels=config["unet_channels"],
+                        unet_kernels=config["unet_kernels"],
+                        unet_strides=config["unet_strides"],
+                        conv_channels=config["conv_channels"],
+                        conv_layers=config["num_layers"],
+                        conv_receptive_field=config["conv_receptive_field"],
+                        margin=config["margin"],
+                        encoder_scales=config["encoder_scales"],
+                        transform=config["transform"],
+                    )
+                elif args.model == "convgnp":
+                    model = nps.construct_convgnp(
+                        points_per_unit=config["points_per_unit"],
+                        dim_x=config["dim_x"],
+                        dim_yc=(1,) * (noise_levels+1),
+                        dim_yt=config["dim_y"],
+                        likelihood="lowrank",
+                        conv_arch=args.arch,
+                        unet_channels=config["unet_channels"],
+                        unet_kernels=config["unet_kernels"],
+                        unet_strides=config["unet_strides"],
+                        conv_channels=config["conv_channels"],
+                        conv_layers=config["num_layers"],
+                        conv_receptive_field=config["conv_receptive_field"],
+                        num_basis_functions=config["num_basis_functions"],
+                        margin=config["margin"],
+                        encoder_scales=config["encoder_scales"],
+                        transform=config["transform"],
+                    )
                 wd_load = WorkingDirectory(
                     *args.root,
                     *(args.subdir or ()),
                     data_dir,
                     "split" if args.model_index is not None else "joint",
                     f"{args.noise_levels+1}_layers" if args.model_index is not None else f"{args.dim_y}_layers",
-                    "convcnp",
+                    args.model,
                     *((args.arch,) if hasattr(args, "arch") else ()),
                     f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
                     f"{args.max_noise_var}_var",
@@ -663,12 +711,13 @@ if __name__ == "__main__":
     # train_procs = []
     # for index in range(LEVELS):
     #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "root": "_experiments_prop_cont",
+    #                    kwargs={"data":"noised_square_wave",
+    #                            "root":"_experiments",
+    #                            "model":"convgnp",
     #                            "epochs":500,
     #                            "noise_levels":LEVELS-1,
     #                            "model_index":index,
-    #                            "gpu":0,
+    #                            "gpu":1,
     #                            "max_noise_var":0.08,})
     #                         #    "same_xt":True})
     #     train_procs.append(proc)
@@ -679,15 +728,16 @@ if __name__ == "__main__":
     # eval_procs = []
     # for ar_context in [0]:
     #     proc = Process(target=main,
-    #                    kwargs={"data":"noised_sawtooth",
-    #                            "root": "_experiments_prop_cont",
+    #                    kwargs={"data":"noised_square_wave",
+    #                            "root":"_experiments",
+    #                            "model":"convgnp",
     #                            "epochs":500,
     #                            "noise_levels":LEVELS-1,
     #                            "model_index":-1,
     #                            "evaluate":True,
     #                            "ar_samples":200,
-    #                            "ar_context":ar_context,
-    #                            "gpu":0,
+    #                            "ar_context":0,
+    #                            "gpu":1,
     #                            "max_noise_var":0.08,})
     #                         #    "same_xt":True})
     #     eval_procs.append(proc)
@@ -697,8 +747,8 @@ if __name__ == "__main__":
 
     # JOINT MODEL
     train_proc = Process(target=main,
-                   kwargs={"data":"noised_sawtooth",
-                           "root": "_experiments_prop_cont",
+                   kwargs={"data":"noised_square_wave",
+                           "root": "_experiments",
                            "epochs":500,
                            "dim_y":LEVELS,
                            "gpu":0,
@@ -708,10 +758,10 @@ if __name__ == "__main__":
     train_proc.join()
 
     eval_procs = []
-    for ar_context in [10]:
+    for ar_context in [0]:
         proc = Process(target=main,
-                    kwargs={"data":"noised_sawtooth",
-                            "root": "_experiments_prop_cont",
+                    kwargs={"data":"noised_square_wave",
+                            "root": "_experiments",
                             "epochs":500,
                             "dim_y":LEVELS,
                             "evaluate":True,
