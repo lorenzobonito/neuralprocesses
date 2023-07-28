@@ -130,6 +130,7 @@ def main(**kw_args):
     parser.add_argument("--model-index", type=int, default=None)
     parser.add_argument("--noise-levels", type=int, default=None)
 
+    parser.add_argument("--target-size", type=int, default=50)
     parser.add_argument("--max-noise-var", type=float, default=0.08)
     parser.add_argument("--ar-context", type=int, default=0)
     parser.add_argument("--same-xt", action="store_true")
@@ -270,6 +271,7 @@ def main(**kw_args):
             args.model,
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+            f"{args.target_size}_targ",
             f"{args.max_noise_var}_var",
             "same_xt" if args.same_xt else "diff_xt",
             f"{args.epochs}_epochs",
@@ -332,6 +334,7 @@ def main(**kw_args):
         "noise_levels": noise_levels,
         "beta": beta,
         "same_xt": args.same_xt,
+        "noised_target_size": args.target_size,
     }
 
     # Setup data generators for training and for evaluation.
@@ -462,6 +465,7 @@ def main(**kw_args):
             args.model,
             *((args.arch,) if hasattr(args, "arch") else ()),
             f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+            f"{args.target_size}_targ",
             f"{args.max_noise_var}_var",
             "same_xt" if args.same_xt else "diff_xt",
             f"{args.epochs}_epochs",
@@ -545,6 +549,7 @@ def main(**kw_args):
                     args.model,
                     *((args.arch,) if hasattr(args, "arch") else ()),
                     f"s{args.size_unet_channels}_n{args.num_unet_channels}_k{args.unet_kernels}",
+                    f"{args.target_size}_targ",
                     f"{args.max_noise_var}_var",
                     "same_xt" if args.same_xt else "diff_xt",
                     f"{args.epochs}_epochs",
@@ -561,8 +566,7 @@ def main(**kw_args):
             model.load_state_dict(patch_model(torch.load(wd_train.file(name), map_location=device))["weights"])
 
         # Load different context sets
-        dataset = torch.load(f"benchmark_datasets/benchmark_dataset_{args.data}_{args.dim_y}_layers.pt", map_location=device)
-        # dataset = torch.load(f"benchmark_datasets/benchmark_dataset_varTarg_{args.data}_{args.dim_y}_layers.pt", map_location=device)
+        dataset = torch.load(f"benchmark_datasets/benchmark_dataset_{args.target_size}_targets_{args.data}_{args.dim_y}_layers.pt", map_location=device)
         
         # Evaluate model predictions over context sets
         logliks = []
@@ -712,8 +716,9 @@ if __name__ == "__main__":
     # for index in range(LEVELS):
     #     proc = Process(target=main,
     #                    kwargs={"data":"noised_square_wave",
-    #                            "root":"_experiments",
+    #                            "root":"_experiments_50_targ",
     #                            "model":"convgnp",
+    #                            "target_size":50,
     #                            "epochs":500,
     #                            "noise_levels":LEVELS-1,
     #                            "model_index":index,
@@ -729,8 +734,9 @@ if __name__ == "__main__":
     # for ar_context in [0]:
     #     proc = Process(target=main,
     #                    kwargs={"data":"noised_square_wave",
-    #                            "root":"_experiments",
+    #                            "root":"_experiments_50_targ",
     #                            "model":"convgnp",
+    #                            "target_size":50,
     #                            "epochs":500,
     #                            "noise_levels":LEVELS-1,
     #                            "model_index":-1,
@@ -748,12 +754,13 @@ if __name__ == "__main__":
     # JOINT MODEL
     train_proc = Process(target=main,
                    kwargs={"data":"noised_square_wave",
-                           "root": "_experiments",
+                           "root": "_experiments_50_targ",
                            "model":"convgnp",
+                           "target_size":50,
                            "epochs":500,
                            "dim_y":LEVELS,
-                           "gpu":0,
-                           "max_noise_var":0.02,})
+                           "gpu":1,
+                           "max_noise_var":0.08,})
                         #    "same_xt":True})
     train_proc.start()
     train_proc.join()
@@ -762,23 +769,19 @@ if __name__ == "__main__":
     for ar_context in [0]:
         proc = Process(target=main,
                     kwargs={"data":"noised_square_wave",
-                            "root": "_experiments",
+                            "root": "_experiments_50_targ",
                             "model":"convgnp",
+                            "target_size":50,
                             "epochs":500,
                             "dim_y":LEVELS,
                             "evaluate":True,
                             "ar_samples":1000,
                             "ar_context":0,
-                            "gpu":0,
-                            "max_noise_var":0.02,})
+                            "gpu":1,
+                            "max_noise_var":0.08,})
                             #    "same_xt":True})
         eval_procs.append(proc)
         proc.start()
 
     for proc in eval_procs:
         proc.join()
-
-    # # state = B.create_random_state(torch.float32, seed=0)
-    # # from neuralprocesses.dist import ReciprocalInt
-    # # dist = ReciprocalInt(0, 30, 0.75)
-    # # print(dist.sample(state, torch.float32))
