@@ -130,47 +130,98 @@ def plot_hist_comparison_by_context(logliks: List[dict], labels: List[str], file
     plt.close()
 
 
-def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], filename: str, log: bool = False):
+# def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], filename: str, log: bool = False):
+
+#     assert len(logliks) == len(labels)
+
+#     num_models = len(logliks)
+#     num_context_points = []
+#     data = _process_data(logliks, False, log)
+#     pos = np.arange(0, len(data), 1)
+#     colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][:]
+
+#     plt.figure(figsize=(16,8))
+#     plt.xticks(fontsize=14)
+#     plt.yticks(fontsize=14)
+#     plt.xlabel("Dataset index", fontsize=20, labelpad=10)
+#     plt.ylabel("Likelihood", fontsize=20, labelpad=10)
+
+#     bars = []
+#     for x, values in zip(pos, data.values()):
+#         num_context_points.append(values[0])
+#         for i, (h, c, l) in enumerate(sorted(zip(values[1:], colors, range(len(labels))))):
+#             bar = plt.bar(x, h, color=c, zorder=5-i, label=labels[l])
+#             if i == num_models - 1:
+#                 bars.append(bar)
+
+#     # Adding legend
+#     ax = plt.gca()
+#     h, l = ax.get_legend_handles_labels()
+#     hprime = []
+#     lprime = []
+#     for m in range(num_models):
+#         idx = l.index(labels[m])
+#         hprime.append(h[idx])
+#         lprime.append(l[idx])
+#     # ax.legend(hprime, lprime)
+#     leg = ax.legend(hprime, lprime, facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="upper left", labelspacing=0.25, fontsize=14)
+#     leg.get_frame().set_linewidth(0)
+
+#     for bar, cont in zip(bars, num_context_points):
+#         ax.bar_label(bar, labels=[cont], fontsize=8, fontweight="bold")
+
+#     plt.xlim([-1, 100])
+
+#     # For poster consistency:
+#     ax.set_axisbelow(True)  # Show grid lines below other elements.
+#     ax.grid(which="major", c="#c0c0c0", alpha=0.5, lw=1)
+#     ax.spines["top"].set_visible(False)
+#     ax.spines["right"].set_visible(False)
+#     ax.spines["bottom"].set_lw(1)
+#     ax.spines["left"].set_lw(1)
+#     ax.xaxis.set_ticks_position("bottom")
+#     ax.xaxis.set_tick_params(width=1)
+#     ax.yaxis.set_ticks_position("left")
+#     ax.yaxis.set_tick_params(width=1)
+
+#     plt.tight_layout()
+#     plt.savefig(f"images/{filename}.png", dpi=400)
+#     plt.close()
+
+
+def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], filename: str, log: bool = False):
 
     assert len(logliks) == len(labels)
 
     num_models = len(logliks)
-    num_context_points = []
-    data = _process_data(logliks, False, log)
-    pos = np.arange(0, len(data), 1)
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][:]
+    data = _process_data(logliks, True, log)
+    x = list(data.keys())
+    # colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:]
 
     plt.figure(figsize=(16,8))
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.xlabel("Dataset index", fontsize=20, labelpad=10)
+    plt.xlabel("Context set size", fontsize=20, labelpad=10)
     plt.ylabel("Likelihood", fontsize=20, labelpad=10)
 
-    bars = []
-    for x, values in zip(pos, data.values()):
-        num_context_points.append(values[0])
-        for i, (h, c, l) in enumerate(sorted(zip(values[1:], colors, range(len(labels))))):
-            bar = plt.bar(x, h, color=c, zorder=5-i, label=labels[l])
-            if i == num_models - 1:
-                bars.append(bar)
+    lists = {}
+    for label in labels:
+        lists[label] = []
+    for value in data.values():
+        for idx, label in enumerate(labels):
+            lists[label].append(value[idx])
+
+    for label in lists.keys():
+        plt.plot(x, lists[label], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
+        # linestyle="dashed", 
 
     # Adding legend
     ax = plt.gca()
-    h, l = ax.get_legend_handles_labels()
-    hprime = []
-    lprime = []
-    for m in range(num_models):
-        idx = l.index(labels[m])
-        hprime.append(h[idx])
-        lprime.append(l[idx])
-    # ax.legend(hprime, lprime)
-    leg = ax.legend(hprime, lprime, facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="upper left", labelspacing=0.25, fontsize=14)
+    leg = ax.legend(facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="upper left", labelspacing=0.25, fontsize=14)
     leg.get_frame().set_linewidth(0)
 
-    for bar, cont in zip(bars, num_context_points):
-        ax.bar_label(bar, labels=[cont], fontsize=8, fontweight="bold")
-
-    plt.xlim([-1, 100])
+    plt.xlim([x[0]-1, x[-1]+1])
+    plt.xticks(x)
 
     # For poster consistency:
     ax.set_axisbelow(True)  # Show grid lines below other elements.
@@ -185,7 +236,7 @@ def plot_hist_comparison_by_dataset(logliks: List[dict], labels: List[str], file
     ax.yaxis.set_tick_params(width=1)
 
     plt.tight_layout()
-    plt.savefig(f"images/{filename}.png", dpi=400)
+    plt.savefig(f"images/{filename}.png", dpi=500)
     plt.close()
 
 
@@ -431,8 +482,14 @@ if __name__ == "__main__":
     # plot_hist_comparison_by_context(data, [f"{ar_context_size} AR context" for ar_context_size in ar_context_sizes], f"AR_context_comparison_60_cont_size", False)
 
     # Proportional context comparison
-    with open("/scratch/lb953/_experiments_prop_cont/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_no_prop_cont/200/0/logliks.json", "r") as f:
-        no_prop_cont = json.load(f)
-    with open("/scratch/lb953/_experiments_prop_cont/noised_sawtooth/split/3_layers/convcnp/unet/s64_n6_k5/0.08_var/diff_xt/500_epochs/eval_with_prop_cont/200/0/logliks.json", "r") as f:
-        prop_cont = json.load(f)
-    plot_hist_comparison_by_context([no_prop_cont, prop_cont], ["No prop cont", "Prop cont"], f"prop_cont_comparison", False)
+    for data_type in ["noised_gp", "noised_sawtooth", "noised_square_wave"]:
+        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+            joint_002 = json.load(f)
+        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+            joint_008 = json.load(f)
+        if data_type != "noised_square_wave":
+            with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/split/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/200/0/logliks.json", "r") as f:
+                split_008 = json.load(f)
+            plot_line_comparison_by_context([joint_002, joint_008, split_008], ["Joint, 0.02 var", "Joint, 0.08 var", "Split, 0.08 var"], f"convgnp_{data_type}_50_targets", False)
+        else:
+            plot_line_comparison_by_context([joint_002, joint_008], ["Joint, 0.02 var", "Joint, 0.08 var"], f"convgnp_{data_type}_50_targets", False)

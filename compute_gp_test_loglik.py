@@ -24,11 +24,11 @@ def _plot_curve(values: List[float], fpath: str):
 
 if __name__ == "__main__":
 
-    dataset = torch.load("/scratch/lb953/benchmark_datasets/benchmark_dataset_varTarg_noised_gp_1_layers.pt", map_location="cuda")
+    dataset = torch.load("/scratch/lb953/benchmark_datasets/benchmark_dataset_50_targets_noised_gp_1_layers.pt", map_location="cuda")
 
     # Evaluate model predictions over context sets
     json_data = {}
-    for idx, batch in enumerate(dataset):    
+    for idx, batch in enumerate(dataset):
         cont_size = batch["contexts"][0][0].numel()
         if cont_size in json_data:
             json_data[cont_size] = torch.concat((json_data[cont_size], batch["pred_logpdf_diag"]/batch["xt"][0][0].numel()), dim=0)
@@ -38,4 +38,4 @@ if __name__ == "__main__":
     for cont_size in json_data.keys():
         json_data[cont_size] = json_data[cont_size].mean()
     values = [value.item() for value in json_data.values()]
-    _plot_curve(values, "gp_loglik.png")
+    _plot_curve(values, "images/gp_loglik.png")
