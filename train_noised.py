@@ -711,77 +711,77 @@ if __name__ == "__main__":
 
     LEVELS = 3
 
-    # SPLIT MODEL
-    train_procs = []
-    for index in range(LEVELS):
-        proc = Process(target=main,
-                       kwargs={"data":"noised_gp",
-                               "root":"_experiments_50_targ",
-                            #    "model":"convgnp",
-                               "target_size":50,
-                               "epochs":500,
-                               "noise_levels":LEVELS-1,
-                               "model_index":index,
-                               "gpu":0,
-                               "max_noise_var":0.08,})
-                            #    "same_xt":True})
-        train_procs.append(proc)
-        proc.start()
-    for proc in train_procs:
-        proc.join()
-
-    eval_procs = []
-    for ar_context in [0]:
-        proc = Process(target=main,
-                       kwargs={"data":"noised_gp",
-                               "root":"_experiments_50_targ",
-                            #    "model":"convgnp",
-                               "target_size":50,
-                               "epochs":500,
-                               "noise_levels":LEVELS-1,
-                               "model_index":-1,
-                               "evaluate":True,
-                               "ar_samples":200,
-                               "ar_context":0,
-                               "gpu":0,
-                               "max_noise_var":0.08,})
-                            #    "same_xt":True})
-        eval_procs.append(proc)
-        proc.start()
-    for proc in eval_procs:
-        proc.join()
-
-    # # JOINT MODEL
-    # train_proc = Process(target=main,
-    #                kwargs={"data":"noised_gp",
-    #                        "root": "_experiments_50_targ",
-    #                     #    "model":"convgnp",
-    #                        "target_size":50,
-    #                        "epochs":500,
-    #                        "dim_y":LEVELS,
-    #                        "gpu":0,
-    #                        "max_noise_var":0.02,})
-    #                     #    "same_xt":True})
-    # train_proc.start()
-    # train_proc.join()
+    # # SPLIT MODEL
+    # train_procs = []
+    # for index in range(LEVELS):
+    #     proc = Process(target=main,
+    #                    kwargs={"data":"noised_square_wave",
+    #                            "root":"_experiments_50_targ",
+    #                         #    "model":"convgnp",
+    #                            "target_size":50,
+    #                            "epochs":500,
+    #                            "noise_levels":LEVELS-1,
+    #                            "model_index":index,
+    #                            "gpu":0,
+    #                            "max_noise_var":0.08,})
+    #                         #    "same_xt":True})
+    #     train_procs.append(proc)
+    #     proc.start()
+    # for proc in train_procs:
+    #     proc.join()
 
     # eval_procs = []
     # for ar_context in [0]:
     #     proc = Process(target=main,
-    #                 kwargs={"data":"noised_gp",
-    #                         "root": "_experiments_50_targ",
-    #                         # "model":"convgnp",
-    #                         "target_size":50,
-    #                         "epochs":500,
-    #                         "dim_y":LEVELS,
-    #                         "evaluate":True,
-    #                         "ar_samples":1000,
-    #                         "ar_context":0,
-    #                         "gpu":0,
-    #                         "max_noise_var":0.02,})
+    #                    kwargs={"data":"noised_square_wave",
+    #                            "root":"_experiments_50_targ",
+    #                         #    "model":"convgnp",
+    #                            "target_size":50,
+    #                            "epochs":500,
+    #                            "noise_levels":LEVELS-1,
+    #                            "model_index":-1,
+    #                            "evaluate":True,
+    #                            "ar_samples":200,
+    #                            "ar_context":0,
+    #                            "gpu":0,
+    #                            "max_noise_var":0.08,})
     #                         #    "same_xt":True})
     #     eval_procs.append(proc)
     #     proc.start()
+    # for proc in eval_procs:
+    #     proc.join()
+
+    # JOINT MODEL
+    train_proc = Process(target=main,
+                   kwargs={"data":"noised_square_wave",
+                           "root": "_experiments_50_targ",
+                        #    "model":"convgnp",
+                           "target_size":50,
+                           "epochs":500,
+                           "dim_y":LEVELS,
+                           "gpu":1,
+                           "max_noise_var":0.02,})
+                        #    "same_xt":True})
+    train_proc.start()
+    train_proc.join()
+
+    eval_procs = []
+    for ar_context in [0]:
+        proc = Process(target=main,
+                    kwargs={"data":"noised_square_wave",
+                            "root": "_experiments_50_targ",
+                            # "model":"convgnp",
+                            "target_size":50,
+                            "epochs":500,
+                            "dim_y":LEVELS,
+                            "evaluate":True,
+                            "ar_samples":1000,
+                            "ar_context":0,
+                            "gpu":1,
+                            "max_noise_var":0.02,})
+                            #    "same_xt":True})
+        eval_procs.append(proc)
+        proc.start()
 
     # for proc in eval_procs:
     #     proc.join()
