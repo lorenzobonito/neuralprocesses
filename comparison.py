@@ -495,23 +495,32 @@ if __name__ == "__main__":
     #     else:
     #         plot_line_comparison_by_context([joint_002, joint_008], ["Joint, 0.02 var", "Joint, 0.08 var"], f"convcnp_{data_type}_50_targets", False)
 
-    # Even more comparisons
-    for data_type in ["noised_gp", "noised_sawtooth", "noised_square_wave"]:
-        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convcnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-            joint_002_convcnp = json.load(f)
-        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-            joint_002_convgnp = json.load(f)
-        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convcnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-            joint_008_convcnp = json.load(f)
-        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-            joint_008_convgnp = json.load(f)
-        with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/split/3_layers/convcnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/200/0/logliks.json", "r") as f:
-            split_008_convcnp = json.load(f)
-        if data_type != "noised_square_wave":
-            with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/split/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/200/0/logliks.json", "r") as f:
-                split_008_convgnp = json.load(f)
-            plot_line_comparison_by_context([joint_002_convcnp, joint_002_convgnp, joint_008_convcnp, joint_008_convgnp, split_008_convcnp, split_008_convgnp],
-                                            ["Joint CNP, 0.02 var", "Joint GNP, 0.02 var", "Joint CNP, 0.08 var", "Joint GNP, 0.08 var", "Split CNP, 0.08 var", "Split GNP, 0.08 var"], f"{data_type}_50_targets", False)
-        else:
-            plot_line_comparison_by_context([joint_002_convcnp, joint_002_convgnp, joint_008_convcnp, joint_008_convgnp, split_008_convcnp],
-                                            ["Joint CNP, 0.02 var", "Joint GNP, 0.02 var", "Joint CNP, 0.08 var", "Joint GNP, 0.08 var", "Split CNP, 0.08 var"], f"{data_type}_50_targets", False)
+    # # Even more comparisons
+    # for data_type in ["noised_gp", "noised_sawtooth", "noised_square_wave"]:
+    #     with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convcnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #         joint_002_convcnp = json.load(f)
+    #     with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #         joint_002_convgnp = json.load(f)
+    #     with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convcnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #         joint_008_convcnp = json.load(f)
+    #     with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #         joint_008_convgnp = json.load(f)
+    #     with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/split/3_layers/convcnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/200/0/logliks.json", "r") as f:
+    #         split_008_convcnp = json.load(f)
+    #     if data_type != "noised_square_wave":
+    #         with open(f"/scratch/lb953/_experiments_50_targ/{data_type}/split/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/200/0/logliks.json", "r") as f:
+    #             split_008_convgnp = json.load(f)
+    #         plot_line_comparison_by_context([joint_002_convcnp, joint_002_convgnp, joint_008_convcnp, joint_008_convgnp, split_008_convcnp, split_008_convgnp],
+    #                                         ["Joint CNP, 0.02 var", "Joint GNP, 0.02 var", "Joint CNP, 0.08 var", "Joint GNP, 0.08 var", "Split CNP, 0.08 var", "Split GNP, 0.08 var"], f"{data_type}_50_targets", False)
+    #     else:
+    #         plot_line_comparison_by_context([joint_002_convcnp, joint_002_convgnp, joint_008_convcnp, joint_008_convgnp, split_008_convcnp],
+    #                                         ["Joint CNP, 0.02 var", "Joint GNP, 0.02 var", "Joint CNP, 0.08 var", "Joint GNP, 0.08 var", "Split CNP, 0.08 var"], f"{data_type}_50_targets", False)
+
+    # New noise var comparisons (CONVCNP)
+    NOISE_VARS = [0.1, 0.2, 0.3, 0.4, 0.5]
+    for y_dim in Y_DIMS:
+        data = []
+        for noise_var in NOISE_VARS:
+            with open(f"/scratch/lb953/_experiments_50_targ/noised_sawtooth/joint/{y_dim}_layers/convcnp/unet/s64_n6_k5/50_targ/{noise_var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+                data.append(json.load(f))
+        plot_line_comparison_by_context(data, [f"{var} var" for var in NOISE_VARS], f"{y_dim}_noise_var_comp_convcnp")
