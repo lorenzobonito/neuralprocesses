@@ -1,5 +1,4 @@
 import argparse
-from copy import deepcopy
 import json
 from multiprocessing import Process
 import os
@@ -784,5 +783,5 @@ if __name__ == "__main__":
         eval_procs.append(proc)
         proc.start()
 
-    # for proc in eval_procs:
-    #     proc.join()
+    for proc in eval_procs:
+        proc.join()
