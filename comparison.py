@@ -538,18 +538,18 @@ if __name__ == "__main__":
     #                                 ["ConvCNP (MaxCont30)", "AR ConvCNP (MaxCont30)", "ConvCNP (MaxCont80)", "AR ConvCNP (MaxCont80)"],
     #                                 "ConvCNP_baselines")
 
-    # Baseline ConvGNP comparisons
-    with open("/scratch/lb953/_experiments_baseline_maxCont30/sawtooth/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
-        regular_30_gnp = json.load(f)
-    with open("/scratch/lb953/_experiments_baseline_maxCont30/sawtooth/convgnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
-        ar_30_gnp = json.load(f)
-    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
-        regular_80_gnp = json.load(f)
-    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convgnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
-        ar_80_gnp = json.load(f)
-    plot_line_comparison_by_context([regular_30_gnp, ar_30_gnp, regular_80_gnp, ar_80_gnp],
-                                    ["ConvGNP (MaxCont30)", "AR ConvGNP (MaxCont30)", "ConvGNP (MaxCont80)", "AR ConvGNP (MaxCont80)"],
-                                    "ConvGNP_baselines")
+    # # Baseline ConvGNP comparisons
+    # with open("/scratch/lb953/_experiments_baseline_maxCont30/sawtooth/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
+    #     regular_30_gnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont30/sawtooth/convgnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
+    #     ar_30_gnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
+    #     regular_80_gnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convgnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
+    #     ar_80_gnp = json.load(f)
+    # plot_line_comparison_by_context([regular_30_gnp, ar_30_gnp, regular_80_gnp, ar_80_gnp],
+    #                                 ["ConvGNP (MaxCont30)", "AR ConvGNP (MaxCont30)", "ConvGNP (MaxCont80)", "AR ConvGNP (MaxCont80)"],
+    #                                 "ConvGNP_baselines")
 
     # # Baseline AR ConvCNP + current (4 Aug) best ConvGNP
     # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
@@ -561,3 +561,12 @@ if __name__ == "__main__":
     # plot_line_comparison_by_context([ar_80_cnp, joint_GNP_008, joint_GNP_002],
     #                                 ["AR ConvCNP (MaxCont80)", "Joint ConvGNP (0.08 var)", "Joint ConvGNP (0.02 var)"],
     #                                 "ConvCNP_baselines_with_ARDNP_ConvGNP")
+
+    # Noise var comparison (ConvGNP)
+    data = []
+    # NOISE_VARS = [0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.15]
+    NOISE_VARS = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+    for noise_var in NOISE_VARS:
+        with open(f"/scratch/lb953/_experiments_50_targ_convgnp_noise_var/noised_sawtooth/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/{noise_var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+            data.append(json.load(f))
+    plot_line_comparison_by_context(data, [f"{var} var" for var in NOISE_VARS], "noise_var_comp_GNP_2")

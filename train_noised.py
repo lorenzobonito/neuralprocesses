@@ -575,13 +575,12 @@ def main(**kw_args):
                 state, loglik = split_AR_prediction(state, models, batch, num_samples=args.ar_samples, ar_context=args.ar_context, prop_context=False, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
             else:
                 state, loglik = joint_AR_prediction(state, model, batch, num_samples=args.ar_samples, ar_context=args.ar_context, prop_context=False, path=wd_eval.file(f"images/noised_AR_pred-{idx + 1:03d}.pdf"), config=config)
-            logliks.append(loglik)
+            logliks.append(loglik.item())
             json_data[idx] = (batch["contexts"][0][0].numel(), loglik.item())
-            out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), *loglik))
+            out.kv(f"Dataset {idx}", (str(batch["contexts"][0][0].numel()), loglik.item()))
             with open(wd_eval.file("logliks.json"), "w", encoding="utf-8") as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
-
-        logliks = B.concat(*logliks)
+        logliks = torch.Tensor(logliks)
         out.kv("Loglik (P)", exp.with_err(logliks, and_lower=True))
 
     else:
@@ -709,7 +708,7 @@ if __name__ == "__main__":
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
     LEVELS = 3
-    MAX_NOISE_VAR = 0.5
+    MAX_NOISE_VAR = 0.1
 
     # # SPLIT MODEL
     # train_procs = []
@@ -753,33 +752,33 @@ if __name__ == "__main__":
 
     # JOINT MODEL
     train_proc = Process(target=main,
-                   kwargs={"data":"noised_sawtooth",
-                           "root": "_experiments_50_targ_convgnp_noise_var",
-                           "model":"convgnp",
-                           "target_size":50,
-                           "epochs":500,
-                           "dim_y":LEVELS,
-                           "gpu":1,
-                           "max_noise_var":MAX_NOISE_VAR,})
-                        #    "same_xt":True})
+                        kwargs={"data":"noised_sawtooth",
+                                "root": "_experiments_50_targ_convgnp_ydim",
+                                "model":"convgnp",
+                                "target_size":50,
+                                "epochs":500,
+                                "dim_y":LEVELS,
+                                "gpu":0,
+                                "max_noise_var":MAX_NOISE_VAR,})
+                                #    "same_xt":True})
     train_proc.start()
     train_proc.join()
 
     eval_procs = []
     for ar_context in [0]:
         proc = Process(target=main,
-                    kwargs={"data":"noised_sawtooth",
-                            "root": "_experiments_50_targ_convgnp_noise_var",
-                            "model":"convgnp",
-                            "target_size":50,
-                            "epochs":500,
-                            "dim_y":LEVELS,
-                            "evaluate":True,
-                            "ar_samples":1000,
-                            "ar_context":0,
-                            "gpu":1,
-                            "max_noise_var":MAX_NOISE_VAR,})
-                            #    "same_xt":True})
+                        kwargs={"data":"noised_sawtooth",
+                                "root": "_experiments_50_targ_convgnp_ydim",
+                                "model":"convgnp",
+                                "target_size":50,
+                                "epochs":500,
+                                "dim_y":LEVELS,
+                                "evaluate":True,
+                                "ar_samples":1000,
+                                "ar_context":0,
+                                "gpu":0,
+                                "max_noise_var":MAX_NOISE_VAR,})
+                                #    "same_xt":True})
         eval_procs.append(proc)
         proc.start()
 
