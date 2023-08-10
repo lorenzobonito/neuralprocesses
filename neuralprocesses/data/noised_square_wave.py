@@ -12,11 +12,12 @@ __all__ = ["NoisedSquareWaveGenerator"]
 
 class NoisedSquareWaveGenerator(SyntheticGenerator):
 
-    def __init__(self, *args, dist_freq=UniformContinuous(2, 4), noise_levels=None, beta=None, **kw_args):
+    def __init__(self, *args, dist_freq=UniformContinuous(2, 4), noise_levels=None, beta=None, same_xt=False, **kw_args):
         super().__init__(*args, **kw_args)
         self.dist_freq = dist_freq
         self.noise_levels = noise_levels
         self.beta = beta
+        self.same_xt = same_xt
 
     def _noise_up(self, yt, iters):
 
@@ -29,6 +30,9 @@ class NoisedSquareWaveGenerator(SyntheticGenerator):
         with B.on_device(self.device):
 
             xc, nc, multi_xt = new_multi_batch(self, self.dim_y, self.noise_levels+1)
+            if self.same_xt:
+                for idx in range(1, len(multi_xt)):
+                    multi_xt[idx] = multi_xt[0]
             x = B.concat(xc, multi_xt[0], axis=1)
             _c = lambda x: B.cast(self.dtype, x)
 
