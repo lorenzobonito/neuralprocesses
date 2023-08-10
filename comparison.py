@@ -3,6 +3,7 @@ import json
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
+plt.rcParams["font.family"] = "Times New Roman"
 import numpy as np
 
 def compare(logliks: Tuple[dict, dict]):
@@ -55,7 +56,7 @@ def _process_data(logliks: List[dict], avg_context: bool = True, log: bool = Fal
                 else:
                     datasets[d].append(np.exp(logliks[m][str(d)][1]))
     
-    if avg_context:
+    if avg_context and not log: # This only works if log is set to False
         # Averaging over context sizes
         data_by_context = {}
         for dataset in datasets.values():
@@ -64,7 +65,10 @@ def _process_data(logliks: List[dict], avg_context: bool = True, log: bool = Fal
             else:
                 data_by_context[dataset[0]] = np.row_stack([data_by_context[dataset[0]], np.array(dataset[1:])])
         for k, v in data_by_context.items():
-            data_by_context[k] = np.mean(v, axis=0) if v.ndim>1 else v
+            # STD
+            # data_by_context[k] = (np.mean(v, axis=0) if v.ndim>1 else v, np.std(v, axis=0, ddof=1) if v.ndim>1 else 0)
+            # SE
+            data_by_context[k] = (np.mean(v, axis=0) if v.ndim>1 else v, np.std(v, axis=0, ddof=1)/np.sqrt(v.shape[0]) if v.ndim>1 else 0)
 
         # Sorting by context size
         out = dict(sorted(data_by_context.items(), key=lambda item: item[0]))
@@ -193,7 +197,6 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
 
     assert len(logliks) == len(labels)
 
-    num_models = len(logliks)
     data = _process_data(logliks, True, log)
     x = list(data.keys())
     # colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:]
@@ -204,15 +207,17 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
     plt.xlabel("Context set size", fontsize=20, labelpad=10)
     plt.ylabel("Likelihood", fontsize=20, labelpad=10)
 
-    lists = {}
+    new_data = {}
     for label in labels:
-        lists[label] = []
+        new_data[label] = {"mean":[], "std":[]}
     for value in data.values():
         for idx, label in enumerate(labels):
-            lists[label].append(value[idx])
-
-    for label in lists.keys():
-        plt.plot(x, lists[label], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
+            new_data[label]["mean"].append(value[0][idx])
+            new_data[label]["std"].append(value[1][idx])
+    
+    for label in new_data.keys():
+        # plt.plot(x, new_data[label][["mean"]], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
+        plt.errorbar(x, new_data[label]["mean"], yerr=new_data[label]["std"], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
         # linestyle="dashed", 
 
     # Adding legend
@@ -562,11 +567,52 @@ if __name__ == "__main__":
     #                                 ["AR ConvCNP (MaxCont80)", "Joint ConvGNP (0.08 var)", "Joint ConvGNP (0.02 var)"],
     #                                 "ConvCNP_baselines_with_ARDNP_ConvGNP")
 
-    # Noise var comparison (ConvGNP)
-    data = []
-    # NOISE_VARS = [0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.15]
-    NOISE_VARS = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
-    for noise_var in NOISE_VARS:
-        with open(f"/scratch/lb953/_experiments_50_targ_convgnp_noise_var/noised_sawtooth/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/{noise_var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-            data.append(json.load(f))
-    plot_line_comparison_by_context(data, [f"{var} var" for var in NOISE_VARS], "noise_var_comp_GNP_2")
+    # # Noise var comparison (ConvGNP)
+    # data = []
+    # # NOISE_VARS = [0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.15]
+    # NOISE_VARS = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+    # for noise_var in NOISE_VARS:
+    #     with open(f"/scratch/lb953/_experiments_50_targ_convgnp_noise_var/noised_sawtooth/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/{noise_var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #         data.append(json.load(f))
+    # plot_line_comparison_by_context(data, [f"{var} var" for var in NOISE_VARS], "noise_var_comp_GNP_2")
+
+    # # Y DIM comparison (ConvGNP)
+    # data = []
+    # labels = []
+    # for y_dim in [3, 4, 5, 6]:
+    #     for noise_var in [0.04, 0.1]:
+    #         with open(f"/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/{y_dim}_layers/convgnp/unet/s64_n6_k5/50_targ/{noise_var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #             data.append(json.load(f))
+    #             labels.append(f"{y_dim} layers, {noise_var} var")
+    # plot_line_comparison_by_context(data, labels, "ydim_comp_ConvGNP")
+
+    # # More baseline comparisons
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
+    #     ar_80_cnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval/logliks.json", "r") as f:
+    #     reg_80_cnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     lay_6_004 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/5_layers/convgnp/unet/s64_n6_k5/50_targ/0.1_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     lay_5_01 = json.load(f)
+    # plot_line_comparison_by_context([ar_80_cnp, reg_80_cnp, lay_6_004, lay_5_01],
+    #                                 ["AR ConvCNP (MaxCont80)", "ConvCNP (MaxCont80)", "Joint ConvGNP (6 layers, 0.04 var)", "Joint ConvGNP (5 layers, 0.1 var)"], "more_baseline_compar")
+
+    # # Bigger ConvGNP
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_bigger_arch/noised_sawtooth/joint/5_layers/convgnp/unet/s64_n10_k5/50_targ/0.1_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     big_arch_5 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_bigger_arch/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n10_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     big_arch_6 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     lay_6_004 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/5_layers/convgnp/unet/s64_n6_k5/50_targ/0.1_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     lay_5_01 = json.load(f)
+    # plot_line_comparison_by_context([big_arch_5, big_arch_6, lay_5_01, lay_6_004], ["Joint ConvGNP (6 layers, 0.04 var, XL)", "Joint ConvGNP (5 layers, 0.1 var, XL)", "Joint ConvGNP (6 layers, 0.04 var)", "Joint ConvGNP (5 layers, 0.1 var)"], "bigger_arch_comp")
+
+    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
+        ar_80_cnp = json.load(f)
+    with open("/scratch/lb953/_experiments_50_targ_convgnp_bigger_arch/noised_sawtooth/joint/5_layers/convgnp/unet/s64_n10_k5/50_targ/0.1_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+        big_arch_5 = json.load(f)
+    with open("/scratch/lb953/_experiments_50_targ_convgnp_bigger_arch/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n10_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+        big_arch_6 = json.load(f)
+    plot_line_comparison_by_context([ar_80_cnp, big_arch_5, big_arch_6], ["no-1", "no", "no2"], "no")

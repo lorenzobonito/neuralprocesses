@@ -707,8 +707,8 @@ if __name__ == "__main__":
     # For joint model, set dim_y = LEVELS.
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
-    LEVELS = 3
-    MAX_NOISE_VAR = 0.1
+    LEVELS = 6
+    MAX_NOISE_VAR = 0.04
 
     # # SPLIT MODEL
     # train_procs = []
@@ -753,13 +753,13 @@ if __name__ == "__main__":
     # JOINT MODEL
     train_proc = Process(target=main,
                         kwargs={"data":"noised_sawtooth",
-                                "root": "_experiments_50_targ_convgnp_ydim",
+                                "root": "_experiments_50_targ_convgnp_bigger_arch",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
                                 "dim_y":LEVELS,
                                 "gpu":0,
-                                "max_noise_var":MAX_NOISE_VAR,})
+                                "max_noise_var":MAX_NOISE_VAR})
                                 #    "same_xt":True})
     train_proc.start()
     train_proc.join()
@@ -768,7 +768,7 @@ if __name__ == "__main__":
     for ar_context in [0]:
         proc = Process(target=main,
                         kwargs={"data":"noised_sawtooth",
-                                "root": "_experiments_50_targ_convgnp_ydim",
+                                "root": "_experiments_50_targ_convgnp_bigger_arch",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
@@ -777,7 +777,7 @@ if __name__ == "__main__":
                                 "ar_samples":1000,
                                 "ar_context":0,
                                 "gpu":0,
-                                "max_noise_var":MAX_NOISE_VAR,})
+                                "max_noise_var":MAX_NOISE_VAR})
                                 #    "same_xt":True})
         eval_procs.append(proc)
         proc.start()
