@@ -38,7 +38,7 @@ def dataset_plot(batch):
     plt.scatter([d[0] for d in t1_subset], [d[1] for d in t1_subset], marker="^", s=20, linewidth=2, label="Auxiliary context #1", color=colors[2], zorder=2)
     plt.scatter([d[0] for d in t2_subset], [d[1] for d in t2_subset], marker="^", s=20, linewidth=2, label="Auxiliary context #2", color=colors[3], zorder=2)
 
-
+    plt.gca().set_ylim(top=1.6)
 
     # Adding legend
     ax = plt.gca()
@@ -58,7 +58,7 @@ def dataset_plot(batch):
     ax.yaxis.set_tick_params(width=1)
 
     plt.tight_layout()
-    plt.savefig(f"images/dataset_test.png", dpi=400)
+    plt.savefig(f"images/square_wave_dataset.png", dpi=400)
     plt.close()
 
 
@@ -71,7 +71,7 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, target_size: 
             seed=42,
             noise=0,
             dist_freq=UniformContinuous(1, 1),
-            noise_levels=config["dim_y"] - 1,
+            noise_levels=2,
             beta=0.2,
             num_context=UniformDiscrete(num_context, num_context),
             num_target=UniformDiscrete(target_size, target_size),
@@ -80,10 +80,10 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, target_size: 
     elif gen_type.lower() == "noised_square_wave":
         gen = NoisedSquareWaveGenerator(
             torch.float32,
-            seed=42,
+            seed=46,
             noise=0,
-            noise_levels=config["dim_y"] - 1,
-            beta=0.2,
+            noise_levels=2,
+            beta=0.15,
             num_context=UniformDiscrete(num_context, num_context),
             num_target=UniformDiscrete(target_size, target_size),
             **config,
@@ -91,9 +91,9 @@ def get_batches(num_context: int, num_batches: int, gen_type: str, target_size: 
     elif gen_type.lower() == "noised_gp":
         gen = NoisedGPGenerator(
             torch.float32,
-            seed=42,
+            seed=45,
             noise=0,
-            noise_levels=config["dim_y"] - 1,
+            noise_levels=2,
             beta=0.2,
             num_context=UniformDiscrete(num_context, num_context),
             num_target=UniformDiscrete(target_size, target_size),
@@ -117,11 +117,11 @@ if __name__ == "__main__":
             "batch_size": 1,
             "dist_x_context": UniformContinuous(*((X_RANGE_CONTEXT,))),
             "dist_x_target": UniformContinuous(*((X_RANGE_TARGET,))),
-            "dim_y": 3,
+            "dim_y": 1,
             "device": "cuda:0" if torch.cuda.is_available() else "cpu",
             "same_xt": True,
         }
 
-    batch = get_batches(10, 1, "noised_gp", 3000, config)
+    batch = get_batches(10, 1, "noised_square_wave", 3000, config)
 
     dataset_plot(batch[0])
