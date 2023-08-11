@@ -609,10 +609,14 @@ if __name__ == "__main__":
     #     lay_5_01 = json.load(f)
     # plot_line_comparison_by_context([big_arch_5, big_arch_6, lay_5_01, lay_6_004], ["Joint ConvGNP (6 layers, 0.04 var, XL)", "Joint ConvGNP (5 layers, 0.1 var, XL)", "Joint ConvGNP (6 layers, 0.04 var)", "Joint ConvGNP (5 layers, 0.1 var)"], "bigger_arch_comp")
 
-    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
-        ar_80_cnp = json.load(f)
-    with open("/scratch/lb953/_experiments_50_targ_convgnp_bigger_arch/noised_sawtooth/joint/5_layers/convgnp/unet/s64_n10_k5/50_targ/0.1_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-        big_arch_5 = json.load(f)
-    with open("/scratch/lb953/_experiments_50_targ_convgnp_bigger_arch/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n10_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-        big_arch_6 = json.load(f)
-    plot_line_comparison_by_context([ar_80_cnp, big_arch_5, big_arch_6], ["no-1", "no", "no2"], "no")
+    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/10/0/logliks.json", "r") as f:
+        samp_10 = json.load(f)
+    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
+        samp_100 = json.load(f)
+    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/500/0/logliks.json", "r") as f:
+        samp_500 = json.load(f)
+    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+        samp_1000 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/5/logliks.json", "r") as f:
+    #     samp_1000_ar5 = json.load(f)
+    plot_line_comparison_by_context([samp_10, samp_100, samp_500, samp_1000], ["10", "100", "500", "1000"], "11_Aug_Compar")

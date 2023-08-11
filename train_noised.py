@@ -707,8 +707,8 @@ if __name__ == "__main__":
     # For joint model, set dim_y = LEVELS.
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
-    LEVELS = 6
-    MAX_NOISE_VAR = 0.04
+    LEVELS = 4
+    MAX_NOISE_VAR = 0.08
 
     # # SPLIT MODEL
     # train_procs = []
@@ -753,30 +753,30 @@ if __name__ == "__main__":
     # JOINT MODEL
     train_proc = Process(target=main,
                         kwargs={"data":"noised_sawtooth",
-                                "root": "_experiments_50_targ_convgnp_bigger_arch",
+                                "root": "_experiments_Aug12",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
                                 "dim_y":LEVELS,
-                                "gpu":0,
+                                "gpu":1,
                                 "max_noise_var":MAX_NOISE_VAR})
                                 #    "same_xt":True})
     train_proc.start()
     train_proc.join()
 
     eval_procs = []
-    for ar_context in [0]:
+    for ar_samples in [250, 1000]:
         proc = Process(target=main,
                         kwargs={"data":"noised_sawtooth",
-                                "root": "_experiments_50_targ_convgnp_bigger_arch",
+                                "root": "_experiments_Aug12",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
                                 "dim_y":LEVELS,
                                 "evaluate":True,
-                                "ar_samples":1000,
+                                "ar_samples":ar_samples,
                                 "ar_context":0,
-                                "gpu":0,
+                                "gpu":1,
                                 "max_noise_var":MAX_NOISE_VAR})
                                 #    "same_xt":True})
         eval_procs.append(proc)
