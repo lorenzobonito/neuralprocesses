@@ -44,13 +44,24 @@ class NoisedSquareWaveGenerator(SyntheticGenerator):
                 self.dim_y_latent,
             )
 
+            # Sample a uniformly distributed (conditional on frequency) phase.
+            self.state, sample = B.rand(
+                self.state,
+                self.float64,
+                self.batch_size,
+                self.dim_y_latent,
+                1,
+            )
+            offset = sample / freq
+
+
             multi_yt = []
             for level, xt in enumerate(multi_xt):
 
                 x = B.concat(xc, xt, axis=1)
 
                 # Construct the sawtooth and add noise.
-                f = B.transpose(B.where(B.floor(x * freq) % 2 == 0, 0, 1))
+                f = B.transpose(B.where(B.floor(x * freq - offset) % 2 == 0, 0, 1))
                 # if self.h is not None:
                 #     f = B.matmul(self.h, f)
                 y = f + B.sqrt(self.noise) * B.randn(f.float())
