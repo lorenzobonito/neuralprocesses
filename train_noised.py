@@ -707,8 +707,8 @@ if __name__ == "__main__":
     # For joint model, set dim_y = LEVELS.
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
-    LEVELS = 4
-    MAX_NOISE_VAR = 0.02
+    LEVELS = 3
+    MAX_NOISE_VAR = 0.08
 
     # # SPLIT MODEL
     # train_procs = []
@@ -752,7 +752,7 @@ if __name__ == "__main__":
 
     # JOINT MODEL
     train_proc = Process(target=main,
-                        kwargs={"data":"noised_gp",
+                        kwargs={"data":"noised_square_wave",
                                 "root": "_experiments_Aug13",
                                 "model":"convgnp",
                                 "target_size":50,
@@ -767,7 +767,7 @@ if __name__ == "__main__":
     eval_procs = []
     for ar_samples in [250, 1000]:
         proc = Process(target=main,
-                        kwargs={"data":"noised_gp",
+                        kwargs={"data":"noised_square_wave",
                                 "root": "_experiments_Aug13",
                                 "model":"convgnp",
                                 "target_size":50,
