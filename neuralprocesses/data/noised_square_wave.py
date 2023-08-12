@@ -12,7 +12,7 @@ __all__ = ["NoisedSquareWaveGenerator"]
 
 class NoisedSquareWaveGenerator(SyntheticGenerator):
 
-    def __init__(self, *args, dist_freq=UniformContinuous(2, 4), noise_levels=None, beta=None, same_xt=False, **kw_args):
+    def __init__(self, *args, dist_freq=UniformContinuous(1, 3), noise_levels=None, beta=None, same_xt=False, **kw_args):
         super().__init__(*args, **kw_args)
         self.dist_freq = dist_freq
         self.noise_levels = noise_levels
