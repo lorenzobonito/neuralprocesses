@@ -708,7 +708,7 @@ if __name__ == "__main__":
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
     LEVELS = 4
-    MAX_NOISE_VAR = 0.08
+    MAX_NOISE_VAR = 0.02
 
     # # SPLIT MODEL
     # train_procs = []
@@ -752,8 +752,8 @@ if __name__ == "__main__":
 
     # JOINT MODEL
     train_proc = Process(target=main,
-                        kwargs={"data":"noised_sawtooth",
-                                "root": "_experiments_Aug12",
+                        kwargs={"data":"noised_gp",
+                                "root": "_experiments_Aug13",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
@@ -767,8 +767,8 @@ if __name__ == "__main__":
     eval_procs = []
     for ar_samples in [250, 1000]:
         proc = Process(target=main,
-                        kwargs={"data":"noised_sawtooth",
-                                "root": "_experiments_Aug12",
+                        kwargs={"data":"noised_gp",
+                                "root": "_experiments_Aug13",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
