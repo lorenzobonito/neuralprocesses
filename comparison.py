@@ -193,7 +193,7 @@ def plot_hist_comparison_by_context(logliks: List[dict], labels: List[str], file
 #     plt.close()
 
 
-def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], filename: str, log: bool = False):
+def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], filename: str, log: bool = False, ebars: bool = False):
 
     assert len(logliks) == len(labels)
 
@@ -216,9 +216,13 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
             new_data[label]["std"].append(value[1][idx])
     
     for label in new_data.keys():
-        # plt.plot(x, new_data[label][["mean"]], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
-        plt.errorbar(x, new_data[label]["mean"], yerr=new_data[label]["std"], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
-        # linestyle="dashed", 
+            if ebars:
+                _, caps, bars = plt.errorbar(x, new_data[label]["mean"], yerr=new_data[label]["std"], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2, capsize=3, elinewidth=2)
+                # [bar.set_alpha(0.5) for bar in bars]
+                # [cap.set_alpha(0.5) for cap in caps]
+            else:
+                plt.plot(x, new_data[label]["mean"], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
+            # linestyle="dashed",
 
     # Adding legend
     ax = plt.gca()
@@ -248,10 +252,10 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
 if __name__ == "__main__":
 
     # DATASETS = ["noised_sawtooth", "noised_square_wave"]
-    Y_DIMS = [3, 4, 5, 6]
-    NUMS_AR_SAMPLES = [100, 1000]
-    ARCHS = ["s64_n6_k5", "s70_n10_k5", "s80_n12_k5"]
-    MODELS = ["joint", "split"]
+    # Y_DIMS = [3, 4, 5, 6]
+    # NUMS_AR_SAMPLES = [100, 1000]
+    # ARCHS = ["s64_n6_k5", "s70_n10_k5", "s80_n12_k5"]
+    # MODELS = ["joint", "split"]
 
     # # Plot architecture comparisons
     # for dataset, y_dim, num_ar_samples in itertools.product(DATASETS, Y_DIMS, NUMS_AR_SAMPLES):
@@ -609,14 +613,27 @@ if __name__ == "__main__":
     #     lay_5_01 = json.load(f)
     # plot_line_comparison_by_context([big_arch_5, big_arch_6, lay_5_01, lay_6_004], ["Joint ConvGNP (6 layers, 0.04 var, XL)", "Joint ConvGNP (5 layers, 0.1 var, XL)", "Joint ConvGNP (6 layers, 0.04 var)", "Joint ConvGNP (5 layers, 0.1 var)"], "bigger_arch_comp")
 
-    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/10/0/logliks.json", "r") as f:
-        samp_10 = json.load(f)
-    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
-        samp_100 = json.load(f)
-    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/500/0/logliks.json", "r") as f:
-        samp_500 = json.load(f)
-    with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-        samp_1000 = json.load(f)
-    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/5/logliks.json", "r") as f:
-    #     samp_1000_ar5 = json.load(f)
-    plot_line_comparison_by_context([samp_10, samp_100, samp_500, samp_1000], ["10", "100", "500", "1000"], "11_Aug_Compar")
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/10/0/logliks.json", "r") as f:
+    #     samp_10 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
+    #     samp_100 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/500/0/logliks.json", "r") as f:
+    #     samp_500 = json.load(f)
+    # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+    #     samp_1000 = json.load(f)
+    # # with open("/scratch/lb953/_experiments_50_targ_convgnp_ydim/noised_sawtooth/joint/6_layers/convgnp/unet/s64_n6_k5/50_targ/0.04_var/diff_xt/500_epochs/eval/1000/5/logliks.json", "r") as f:
+    # #     samp_1000_ar5 = json.load(f)
+    # plot_line_comparison_by_context([samp_10, samp_100, samp_500, samp_1000], ["10", "100", "500", "1000"], "11_Aug_Compar")
+
+    data = []
+    labels = []
+    Y_DIMS = [3, 4, 5, 6]
+    NOISE_VARS = [0.02, 0.04, 0.06, 0.08, 0.1]
+    for y_dim, noise_var in itertools.product(Y_DIMS, NOISE_VARS):
+        try:
+            with open(f"/scratch/lb953/_experiments_Aug12/noised_sawtooth/joint/{y_dim}_layers/convgnp/unet/s64_n6_k5/50_targ/{noise_var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+                data.append(json.load(f))
+            labels.append(f"{y_dim}, {noise_var}")
+        except FileNotFoundError:
+            continue
+    plot_line_comparison_by_context(data, labels, "12_Aug_comparison")
