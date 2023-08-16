@@ -751,24 +751,24 @@ if __name__ == "__main__":
     #     proc.join()
 
     # JOINT MODEL
-    train_proc = Process(target=main,
-                        kwargs={"data":"noised_square_wave",
-                                "root": "_experiments_Aug13",
-                                "model":"convgnp",
-                                "target_size":50,
-                                "epochs":500,
-                                "dim_y":LEVELS,
-                                "gpu":1,
-                                "max_noise_var":MAX_NOISE_VAR})
-                                #    "same_xt":True})
-    train_proc.start()
-    train_proc.join()
+    # train_proc = Process(target=main,
+    #                     kwargs={"data":"noised_square_wave",
+    #                             "root": "_experiments_Aug13",
+    #                             "model":"convgnp",
+    #                             "target_size":50,
+    #                             "epochs":500,
+    #                             "dim_y":LEVELS,
+    #                             "gpu":1,
+    #                             "max_noise_var":MAX_NOISE_VAR})
+    #                             #    "same_xt":True})
+    # train_proc.start()
+    # train_proc.join()
 
     eval_procs = []
-    for ar_samples in [250, 1000]:
+    for ar_samples in [1]:
         proc = Process(target=main,
-                        kwargs={"data":"noised_square_wave",
-                                "root": "_experiments_Aug13",
+                        kwargs={"data":"noised_gp",
+                                "root": "best_models",
                                 "model":"convgnp",
                                 "target_size":50,
                                 "epochs":500,
@@ -776,7 +776,7 @@ if __name__ == "__main__":
                                 "evaluate":True,
                                 "ar_samples":ar_samples,
                                 "ar_context":0,
-                                "gpu":1,
+                                "gpu":0,
                                 "max_noise_var":MAX_NOISE_VAR})
                                 #    "same_xt":True})
         eval_procs.append(proc)

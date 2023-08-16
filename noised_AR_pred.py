@@ -4,6 +4,7 @@ import neuralprocesses.torch as nps
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+plt.rcParams["font.family"] = "Times New Roman"
 
 from wbml.plot import tweak
 from batch_masking import mask_contexts, mask_xt, mask_yt
@@ -66,7 +67,7 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, prop_cont
                 prop_xt_size = 20
 
             if config:
-                plt.figure(figsize=(8, 6 * num_layers))
+                plt.figure(figsize=(7, 6 * num_layers))
                 colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
 
             for level_index in range(num_layers-1, -1, -1):
@@ -136,7 +137,23 @@ def split_AR_prediction(state, models, batch, num_samples, ar_context, prop_cont
                         plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
 
                     plt.xlim(B.min(x[0][0]), B.max(x[0][0]))
-                    tweak()
+                    plt.xticks(fontsize=40)
+                    plt.yticks(fontsize=40)
+                    ax = plt.gca()
+                    leg = ax.legend(facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="upper left", labelspacing=0.25, fontsize=40)
+                    leg.get_frame().set_linewidth(0)
+                    ax.set_axisbelow(True)  # Show grid lines below other elements.
+                    ax.grid(which="major", c="#c0c0c0", alpha=0.5, lw=1)
+                    ax.spines["top"].set_visible(False)
+                    ax.spines["right"].set_visible(False)
+                    ax.spines["bottom"].set_lw(1)
+                    ax.spines["left"].set_lw(1)
+                    ax.xaxis.set_ticks_position("bottom")
+                    ax.xaxis.set_tick_params(width=1)
+                    ax.yaxis.set_ticks_position("left")
+                    ax.yaxis.set_tick_params(width=1)
+                    plt.tight_layout()
+                    # tweak()
 
             if config:
                 plt.savefig(path)
@@ -223,7 +240,7 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
                 prop_xt_size = 20
 
             if config:
-                plt.figure(figsize=(8, 6 * num_layers))
+                plt.figure(figsize=(7, 6 * num_layers))
                 colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
 
             for level_index in range(num_layers-1, -1, -1):
@@ -295,7 +312,23 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
                         plt.axvline(x_axvline, c="k", ls="--", lw=0.5)
 
                     plt.xlim(B.min(l_x[level_index][0]), B.max(l_x[level_index][0]))
-                    tweak()
+                    plt.xticks(fontsize=15)
+                    plt.yticks(fontsize=15)
+                    ax = plt.gca()
+                    leg = ax.legend(facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="upper right", labelspacing=0.25, fontsize=15)
+                    leg.get_frame().set_linewidth(0)
+                    ax.set_axisbelow(True)  # Show grid lines below other elements.
+                    ax.grid(which="major", c="#c0c0c0", alpha=0.5, lw=1)
+                    ax.spines["top"].set_visible(False)
+                    ax.spines["right"].set_visible(False)
+                    ax.spines["bottom"].set_lw(1)
+                    ax.spines["left"].set_lw(1)
+                    ax.xaxis.set_ticks_position("bottom")
+                    ax.xaxis.set_tick_params(width=1)
+                    ax.yaxis.set_ticks_position("left")
+                    ax.yaxis.set_tick_params(width=1)
+                    plt.tight_layout()
+                    # tweak()
 
             if config:
                 plt.savefig(path)
