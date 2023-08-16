@@ -49,6 +49,7 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
         noise_levels=config["noise_levels"],
         beta=config["beta"],
         same_xt=config["same_xt"],
+        noised_target_size=config["noised_target_size"],
     )[name]
 
     gen_cv = lambda: nps.construct_predefined_gens(
@@ -65,6 +66,7 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
         noise_levels=config["noise_levels"],
         beta=config["beta"],
         same_xt=config["same_xt"],
+        noised_target_size=config["noised_target_size"],
     )[name]
 
     def gens_eval():
@@ -87,6 +89,7 @@ def setup(name, args, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, 
                     noise_levels=config["noise_levels"],
                     beta=config["beta"],
                     same_xt=config["same_xt"],
+                    noised_target_size=config["noised_target_size"],
                 )[args.data],
             )
             for eval_name, x_range_context, x_range_target in [

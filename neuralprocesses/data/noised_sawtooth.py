@@ -54,7 +54,7 @@ class NoisedSawtoothGenerator(SyntheticGenerator):
             norm = B.sqrt(B.sum(direction * direction, axis=2, squeeze=False))
             direction = direction / norm
 
-            # Sample a uniformly distributed (conditional on frequency) offset.
+            # Sample a uniformly distributed (conditional on frequency) phase.
             self.state, sample = B.rand(
                 self.state,
                 self.float64,

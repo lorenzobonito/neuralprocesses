@@ -12,11 +12,12 @@ __all__ = ["NoisedSquareWaveGenerator"]
 
 class NoisedSquareWaveGenerator(SyntheticGenerator):
 
-    def __init__(self, *args, dist_freq=UniformContinuous(2, 4), noise_levels=None, beta=None, **kw_args):
+    def __init__(self, *args, dist_freq=UniformContinuous(1, 3), noise_levels=None, beta=None, same_xt=False, **kw_args):
         super().__init__(*args, **kw_args)
         self.dist_freq = dist_freq
         self.noise_levels = noise_levels
         self.beta = beta
+        self.same_xt = same_xt
 
     def _noise_up(self, yt, iters):
 
@@ -29,6 +30,9 @@ class NoisedSquareWaveGenerator(SyntheticGenerator):
         with B.on_device(self.device):
 
             xc, nc, multi_xt = new_multi_batch(self, self.dim_y, self.noise_levels+1)
+            if self.same_xt:
+                for idx in range(1, len(multi_xt)):
+                    multi_xt[idx] = multi_xt[0]
             x = B.concat(xc, multi_xt[0], axis=1)
             _c = lambda x: B.cast(self.dtype, x)
 
@@ -40,13 +44,24 @@ class NoisedSquareWaveGenerator(SyntheticGenerator):
                 self.dim_y_latent,
             )
 
+            # Sample a uniformly distributed (conditional on frequency) phase.
+            self.state, sample = B.rand(
+                self.state,
+                self.float64,
+                self.batch_size,
+                self.dim_y_latent,
+                1,
+            )
+            offset = sample / freq
+
+
             multi_yt = []
             for level, xt in enumerate(multi_xt):
 
                 x = B.concat(xc, xt, axis=1)
 
                 # Construct the sawtooth and add noise.
-                f = B.transpose(B.where(B.floor(x * freq) % 2 == 0, 0, 1))
+                f = B.transpose(B.where(B.floor(x * freq - offset) % 2 == 0, 0, 1))
                 # if self.h is not None:
                 #     f = B.matmul(self.h, f)
                 y = f + B.sqrt(self.noise) * B.randn(f.float())

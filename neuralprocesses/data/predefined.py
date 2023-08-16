@@ -30,6 +30,7 @@ def construct_predefined_gens(
     noise_levels=None,
     beta=None,
     same_xt=False,
+    noised_target_size=50,
 ):
     """Construct a number of predefined data generators.
 
@@ -112,8 +113,8 @@ def construct_predefined_gens(
         noise_levels=noise_levels,
         beta=beta,
         same_xt=same_xt,
-        num_context=UniformDiscrete(0, 5),
-        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        num_context=UniformDiscrete(0, max_context),
+        num_target=UniformDiscrete(noised_target_size * dim_x, noised_target_size * dim_x),
         **config,
     )
 
@@ -123,8 +124,9 @@ def construct_predefined_gens(
         noise=0,
         noise_levels=noise_levels,
         beta=beta,
+        same_xt=same_xt,
         num_context=UniformDiscrete(0, max_context),
-        num_target=UniformDiscrete(100 * dim_x, 100 * dim_x),
+        num_target=UniformDiscrete(noised_target_size * dim_x, noised_target_size * dim_x),
         **config,
     )
 
@@ -135,8 +137,9 @@ def construct_predefined_gens(
         kernel=EQ().stretch(factor * 0.25),
         noise_levels=noise_levels,
         beta=beta,
+        same_xt=same_xt,
         num_context=UniformDiscrete(0, max_context),
-        num_target=UniformDiscrete(50 * dim_x, 50 * dim_x),
+        num_target=UniformDiscrete(noised_target_size * dim_x, noised_target_size * dim_x),
         pred_logpdf=pred_logpdf,
         pred_logpdf_diag=pred_logpdf_diag,
         **config,
