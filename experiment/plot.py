@@ -1,5 +1,7 @@
 import lab as B
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
 import neuralprocesses.torch as nps
 import stheno
 import torch
@@ -97,7 +99,11 @@ def visualise_noised_joint(model, gen, *, path, config, predict=nps.predict):
         )
 
     plt.figure(figsize=(8, 6 * config["dim_y"]))
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
+    if config["dim_y"] <= 6:
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
+    else:
+        cmap = cm.get_cmap("viridis")
+        colors = [cmap(i) for i in np.linspace(0, 1, config["dim_y"])]
 
     for i in range(config["dim_y"]):
 

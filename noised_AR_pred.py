@@ -1,5 +1,6 @@
 import lab as B
 from neuralprocesses.aggregate import Aggregate, AggregateInput
+import matplotlib.cm as cm
 import neuralprocesses.torch as nps
 import numpy as np
 import torch
@@ -241,7 +242,11 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
 
             if config:
                 plt.figure(figsize=(7, 6 * num_layers))
-                colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
+                if config["dim_y"] <= 6:
+                    colors = plt.rcParams['axes.prop_cycle'].by_key()['color'][2:]
+                else:
+                    cmap = cm.get_cmap("viridis")
+                    colors = [cmap(i) for i in np.linspace(0, 1, config["dim_y"])]
 
             for level_index in range(num_layers-1, -1, -1):
 
