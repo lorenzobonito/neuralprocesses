@@ -154,14 +154,17 @@ def joint_AR_prediction(state, model, batch, num_samples, ar_context, prop_conte
                     axs[level_index].spines["right"].set_visible(False)
                     axs[level_index].spines["bottom"].set_lw(1)
                     axs[level_index].spines["left"].set_lw(1)
+                    axs[level_index].set_xlabel("$x$", fontsize=20, labelpad=5)
+                    axs[level_index].xaxis.set_tick_params(width=1)
                     axs[level_index].xaxis.set_tick_params(width=1)
                     axs[level_index].yaxis.set_tick_params(width=1)
                     if level_index == 0:
+                        axs[level_index].set_ylabel("$y$", fontsize=20, labelpad=5)
                         axs[level_index].tick_params(axis="y", which="major", labelsize=FONTSIZE)
                     axs[level_index].tick_params(axis="x", which="major", labelsize=FONTSIZE)
 
             if config:
-                plt.gca().set_ylim(bottom=-0.5)
+                plt.gca().set_ylim([-1, 2])
                 handles, labels = axs[0].get_legend_handles_labels()
                 leg = fig.legend(handles, labels, loc="upper center", facecolor="#eeeeee", handletextpad=0.1, edgecolor="#ffffff", framealpha=1, fontsize=FONTSIZE, ncol=6)
                 leg.get_frame().set_linewidth(0)

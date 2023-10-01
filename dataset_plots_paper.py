@@ -62,8 +62,10 @@ def dataset_plot(batch, dataset_type, top_ylim):
         ax.spines["left"].set_lw(1)
         ax.xaxis.set_tick_params(width=1)
         ax.yaxis.set_tick_params(width=1)
+        ax.set_xlabel("$x$", fontsize=20, labelpad=5)
         if i == 0:
             ax.tick_params(axis="y", which="major", labelsize=FONTSIZE)
+            ax.set_ylabel("$y$", fontsize=20, labelpad=5)
         ax.tick_params(axis="x", which="major", labelsize=FONTSIZE)
 
     plt.tight_layout()

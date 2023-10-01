@@ -15,8 +15,8 @@ import wbml.out as out
 from matrix.util import ToDenseWarning
 from wbml.experiment import WorkingDirectory
 from batch_masking import mask_batch
-from noised_AR_pred import split_AR_prediction, joint_AR_prediction
-# from noised_AR_pred_paper_plots import split_AR_prediction, joint_AR_prediction
+# from noised_AR_pred import split_AR_prediction, joint_AR_prediction
+from noised_AR_pred_paper_plots import split_AR_prediction, joint_AR_prediction
 from training_dynamics import split_training_dynamics, joint_training_dynamics
 from noise_comp import compute_beta
 
@@ -709,7 +709,7 @@ if __name__ == "__main__":
     # For split model, set noise_levels = LEVELS-1 and model_index \in {0, ..., LEVELS-1} in turn. Use model_index = -1 for evaluation.
 
     LEVELS = 3
-    MAX_NOISE_VAR = 0.02
+    MAX_NOISE_VAR = 0.04
 
     # # SPLIT MODEL
     # train_procs = []
@@ -768,7 +768,7 @@ if __name__ == "__main__":
     eval_procs = []
     for ar_samples in [1]:
         proc = Process(target=main,
-                        kwargs={"data":"noised_sawtooth",
+                        kwargs={"data":"noised_square_wave",
                                 "root": "_experiments_new",
                                 "model":"convgnp",
                                 "target_size":50,

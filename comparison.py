@@ -223,6 +223,12 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
     with open("/scratch/lb953/best_models/noised_sawtooth/joint/4_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/50000/0/logliks.json", "r") as f:
         sawtooth_50k = json.load(f)
     sawtooth_50k = _process_data([sawtooth_50k], True, log)
+    with open("/scratch/lb953/best_models/noised_square_wave/joint/4_layers/convgnp/unet/s64_n6_k5/50_targ/0.06_var/diff_xt/500_epochs/eval/50000/0/logliks.json", "r") as f:
+        square_wave_50k = json.load(f)
+    square_wave_50k = _process_data([square_wave_50k], True, log)
+    with open("/scratch/lb953/best_models/noised_gp/joint/3_layers/convgnp/unet/s64_n6_k5/50_targ/0.08_var/diff_xt/500_epochs/eval/50000/0/logliks.json", "r") as f:
+        gp_50k = json.load(f)
+    gp_50k = _process_data([gp_50k], True, log)
     
     for idx, label in enumerate(new_data.keys()):
             if ebars:
@@ -230,11 +236,15 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
                 # [bar.set_alpha(0.5) for bar in bars]
                 # [cap.set_alpha(0.5) for cap in caps]
             else:
-                plt.plot(x, new_data[label]["mean"], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
-            if idx == 0:
-                plt.plot([0, 1, 2, 3, 4, 5], [float(value[0]) for value in sawtooth_50k.values()], label="DNP (50k Samples)", linewidth=2, marker="x", markersize=8, markeredgewidth=2)
-            # linestyle="dashed",
+                # if idx == 0:
+                #     plt.plot([0, 1, 2, 3, 4, 5] + x[6:],
+                #              [float(value[0]) for value in square_wave_50k.values()] + new_data[label]["mean"][6:],
+                #              label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
+                # else:
+                    plt.plot(x, new_data[label]["mean"], label=label, linewidth=2, marker="x", markersize=8, markeredgewidth=2)
     
+    plt.plot(x[:6], [float(value[0]) for value in sawtooth_50k.values()], label="50k Samples", linewidth=2, marker="x", markersize=8, markeredgewidth=2)
+
     # with open("/scratch/lb953/pred_logpdf_diag.json", "r") as f:
     #     gp_diag = json.load(f)
     # plt.plot(x, gp_diag.values(), label="Diagonal GP", linewidth=2, marker="x", markersize=8, markeredgewidth=2)
@@ -244,6 +254,7 @@ def plot_line_comparison_by_context(logliks: List[dict], labels: List[str], file
     leg = ax.legend(facecolor="#eeeeee", edgecolor="#ffffff", framealpha=0.85, loc="lower right", labelspacing=0.25, fontsize=17)
     leg.get_frame().set_linewidth(0)
 
+    # plt.ylim(top=130)
     plt.xlim([x[0]-1, x[-1]+1])
     plt.xticks([0, 5, 10, 15, 20, 25, 30])
 
@@ -695,19 +706,19 @@ if __name__ == "__main__":
     # with open("/scratch/lb953/_experiments_baseline_maxCont80/eq/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
     #     reg_80_gnp = json.load(f)
     # plot_line_comparison_by_context([best_dnp, reg_80_cnp, ar_80_cnp, reg_80_gnp],
-    #                                 ["AR DNP", "ConvCNP", "AR ConvCNP", "ConvGNP"], "gp_results")
+    #                                 ["DNP", "ConvCNP", "AR ConvCNP", "ConvGNP"], "gp_results")
 
-    # Sawtooth results
-    with open("/scratch/lb953/best_models/noised_sawtooth/joint/4_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/5000/0/logliks.json", "r") as f:
-        best_dnp = json.load(f)
-    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval/logliks.json", "r") as f:
-        reg_80_cnp = json.load(f)
-    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
-        ar_80_cnp = json.load(f)
-    with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
-        reg_80_gnp = json.load(f)
-    plot_line_comparison_by_context([best_dnp, reg_80_cnp, ar_80_cnp, reg_80_gnp],
-                                    ["DNP (5k Samples)", "ConvCNP", "AR ConvCNP", "ConvGNP"], "sawtooth_results")
+    # # Sawtooth results
+    # with open("/scratch/lb953/best_models/noised_sawtooth/joint/4_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/5000/0/logliks.json", "r") as f:
+    #     best_dnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval/logliks.json", "r") as f:
+    #     reg_80_cnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convcnp/unet/500_epochs/eval_AR/logliks.json", "r") as f:
+    #     ar_80_cnp = json.load(f)
+    # with open("/scratch/lb953/_experiments_baseline_maxCont80/sawtooth/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
+    #     reg_80_gnp = json.load(f)
+    # plot_line_comparison_by_context([best_dnp, reg_80_cnp, ar_80_cnp, reg_80_gnp],
+    #                                 ["DNP", "ConvCNP", "AR ConvCNP", "ConvGNP"], "sawtooth_results")
 
     # # Square wave results
     # with open("/scratch/lb953/best_models/noised_square_wave/joint/4_layers/convgnp/unet/s64_n6_k5/50_targ/0.06_var/diff_xt/500_epochs/eval/5000/0/logliks.json", "r") as f:
@@ -719,7 +730,7 @@ if __name__ == "__main__":
     # with open("/scratch/lb953/_experiments_baseline_maxCont80/square_wave/convgnp/unet/500_epochs/eval/logliks.json", "r") as f:
     #     reg_80_gnp = json.load(f)
     # plot_line_comparison_by_context([best_dnp, reg_80_cnp, ar_80_cnp, reg_80_gnp],
-    #                                 ["AR DNP", "ConvCNP", "AR ConvCNP", "ConvGNP"], "square_wave_results")
+    #                                 ["DNP", "ConvCNP", "AR ConvCNP", "ConvGNP"], "square_wave_results")
 
     # # ConvGNP vs ConvCNP
     # with open(f"/scratch/lb953/best_models/noised_sawtooth/joint/4_layers/convgnp/unet/s64_n6_k5/50_targ/0.02_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
@@ -774,19 +785,19 @@ if __name__ == "__main__":
     #     plot_line_comparison_by_context([two, four, six, eight, one],
     #                                         ["Max. Var. 0.02", "Max. Var. 0.04", "Max. Var. 0.06", "Max. Var. 0.08", "Max. Var. 0.1"], f"{dataset}_{depth}_var_comp")
 
-    # # Num AR Samples
-    # for (dataset, depth, var) in [("noised_sawtooth", 4, 0.02)]:#, ("noised_gp", 3, 0.08), ("noised_square_wave", 4, 0.06)]:
-    #     with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
-    #         s_100 = json.load(f)
-    #     with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/500/0/logliks.json", "r") as f:
-    #         s_500 = json.load(f)
-    #     with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
-    #         s_1000 = json.load(f)
-    #     with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/5000/0/logliks.json", "r") as f:
-    #         s_5000 = json.load(f)
-    #     with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/10000/0/logliks.json", "r") as f:
-    #         s_10000 = json.load(f)
-    #     plot_line_comparison_by_context([s_100, s_500, s_1000, s_5000, s_10000], ["100 AR Samples", "500 AR Samples", "1k AR Samples", "5k AR Samples", "10k AR Samples"], f"num_AR_samples_comp_{dataset}")
+    # Num AR Samples
+    for (dataset, depth, var) in [("noised_sawtooth", 4, 0.02)]:#, ("noised_gp", 3, 0.08), ("noised_square_wave", 4, 0.06)]:
+        with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/100/0/logliks.json", "r") as f:
+            s_100 = json.load(f)
+        with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/500/0/logliks.json", "r") as f:
+            s_500 = json.load(f)
+        with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/1000/0/logliks.json", "r") as f:
+            s_1000 = json.load(f)
+        with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/5000/0/logliks.json", "r") as f:
+            s_5000 = json.load(f)
+        with open(f"/scratch/lb953/best_models/{dataset}/joint/{depth}_layers/convgnp/unet/s64_n6_k5/50_targ/{var}_var/diff_xt/500_epochs/eval/10000/0/logliks.json", "r") as f:
+            s_10000 = json.load(f)
+        plot_line_comparison_by_context([s_100, s_500, s_1000, s_5000, s_10000], ["100 Samples", "500 Samples", "1k Samples", "5k Samples", "10k Samples"], f"num_samples_comp")
 
    # Either add 10k to the plot above, or make another zoomed-in version con sia 10k e 50k saying too expensive but look it's good. 
    # Include just sawtooth for brevity.
